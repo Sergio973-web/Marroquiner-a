@@ -33,7 +33,6 @@
   </div>
 
 <script>
-  // Config Firebase marroquineria (arbol-generealogico-burke)
   const firebaseConfig = {
     apiKey: "AIzaSyAd_SRGQ2ZF4LZ-hSB7pgXW3db0pvXWMnY",
     authDomain: "arbol-generealogico-burke.firebaseapp.com",
@@ -55,19 +54,14 @@
   }
 
   let html5QrcodeScanner;
-  let inputSkuActual = null; // guardamos qué input actualizará el código escaneado
+  let inputSkuActual = null;
 
   function abrirScanner(inputSkuId) {
     inputSkuActual = inputSkuId;
     document.getElementById('scanner-container').classList.remove('hidden');
 
     if (html5QrcodeScanner) {
-      // Si ya existe, limpiamos antes de reiniciar
-      html5QrcodeScanner.clear().then(() => {
-        iniciarEscaneo();
-      }).catch(() => {
-        iniciarEscaneo();
-      });
+      html5QrcodeScanner.clear().then(() => iniciarEscaneo()).catch(() => iniciarEscaneo());
     } else {
       iniciarEscaneo();
     }
@@ -80,21 +74,18 @@
     html5QrcodeScanner.start(
       { facingMode: "environment" },
       config,
-      (decodedText, decodedResult) => {
-        // Código escaneado exitosamente
+      (decodedText) => {
         html5QrcodeScanner.stop();
         document.getElementById('scanner-container').classList.add('hidden');
         if(inputSkuActual) {
           const input = document.getElementById(inputSkuActual);
           if(input){
             input.value = decodedText;
-            input.dispatchEvent(new Event('blur')); // para disparar búsqueda o lógica en blur
+            input.dispatchEvent(new Event('blur'));
           }
         }
       },
-      (errorMessage) => {
-        // opcional: console.log(`Scan error: ${errorMessage}`);
-      }
+      (_) => {}
     ).catch(err => {
       alert('Error iniciando la cámara: ' + err);
       document.getElementById('scanner-container').classList.add('hidden');
@@ -103,14 +94,11 @@
 
   function cerrarScanner() {
     if(html5QrcodeScanner){
-      html5QrcodeScanner.stop().then(() => {
-        html5QrcodeScanner.clear();
-      }).catch(() => {});
+      html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
     }
     document.getElementById('scanner-container').classList.add('hidden');
   }
 
-  // Asignamos la función a window para que sea global y accesible desde onclick inline
   window.mostrarFormulario = function(tipo) {
     const cont = document.getElementById('formulario');
     cont.innerHTML = '';
@@ -262,9 +250,7 @@
 
       const datos = snapshot.val();
       const entradas = Object.entries(datos);
-
-      // Obtener claves de primer registro para columnas
-      const claves = Object.keys(entradas[0][1] || entradas[0][0] || {});
+      const claves = Object.keys(entradas[0][1] || {});
 
       let html = `<table class="min-w-full bg-white border border-gray-300">
         <thead>
@@ -303,7 +289,7 @@
     alert('Función de edición aún no implementada para simplificar.');
   }
 
-  // Guardar ingreso producto y registrar venta
+  // Manejo global de formularios ingreso y venta
   document.addEventListener('submit', e => {
     if (e.target.id === 'form-ingreso') {
       e.preventDefault();
