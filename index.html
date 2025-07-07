@@ -189,7 +189,7 @@
         let precioBase = 0;
 
         skuInput.addEventListener('blur', () => {
-          const sku = skuInput.value.trim(); // 🔄 Sin .toUpperCase()
+          const sku = skuInput.value.trim().toLowerCase(); // o .toUpperCase()
           if (!sku) return;
 
           console.log("Buscando SKU:", sku); // 🔍 Para depurar y ver qué se está buscando
@@ -302,7 +302,7 @@
       const form = e.target;
       const inputs = form.querySelectorAll('input, select, textarea');
       let producto = {
-        codigoSKU: inputs[0].value.trim().toUpperCase(),
+        codigoSKU: inputs[0].value.trim().toLowerCase()
         tipo: inputs[1].value.trim(),
         material: inputs[2].value.trim(),
         color: inputs[3].value.trim(),
