@@ -189,28 +189,34 @@
         let precioBase = 0;
 
         skuInput.addEventListener('blur', () => {
-          const sku = skuInput.value.trim().toUpperCase();
+          const sku = skuInput.value.trim(); // 🔄 Sin .toUpperCase()
           if (!sku) return;
 
-          db.ref('marroquineria').orderByChild('codigoSKU').equalTo(sku).limitToFirst(1).once('value', snapshot => {
-            if (snapshot.exists()) {
-              const data = Object.values(snapshot.val())[0];
-              tipoSpan.textContent = data.tipo || '';
-              materialSpan.textContent = data.material || '';
-              colorSpan.textContent = data.color || '';
-              marcaSpan.textContent = data.marca || '';
-              precioBase = parseDecimal(data.precioVenta || 0);
-              precioSpan.textContent = precioBase.toFixed(2);
-              finalSpan.textContent = precioBase.toFixed(2);
-              datosProducto.classList.remove('hidden');
-            } else {
-              alert('Código SKU no encontrado en marroquinería');
-              datosProducto.classList.add('hidden');
-              precioBase = 0;
-              precioSpan.textContent = '0.00';
-              finalSpan.textContent = '0.00';
-            }
-          });
+          console.log("Buscando SKU:", sku); // 🔍 Para depurar y ver qué se está buscando
+
+          db.ref('marroquineria')
+            .orderByChild('codigoSKU')
+            .equalTo(sku)
+            .limitToFirst(1)
+            .once('value', snapshot => {
+              if (snapshot.exists()) {
+                const data = Object.values(snapshot.val())[0];
+                tipoSpan.textContent = data.tipo || '';
+                materialSpan.textContent = data.material || '';
+                colorSpan.textContent = data.color || '';
+                marcaSpan.textContent = data.marca || '';
+                precioBase = parseFloat(data.precioVenta || 0);
+                precioSpan.textContent = precioBase.toFixed(2);
+                finalSpan.textContent = precioBase.toFixed(2);
+                datosProducto.classList.remove('hidden');
+              } else {
+                alert('Código SKU no encontrado en marroquinería');
+                datosProducto.classList.add('hidden');
+                precioBase = 0;
+                precioSpan.textContent = '0.00';
+                finalSpan.textContent = '0.00';
+              }
+            });
         });
 
         bonifInput.addEventListener('input', () => {
