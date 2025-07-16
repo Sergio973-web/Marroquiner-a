@@ -144,7 +144,7 @@
         <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
           <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
           <p><strong>Material:</strong> <span id="venta-material"></span></p>
-          <p><strong>Color:</strong> <span id="venta-color"></span></p>
+          
           <p><strong>Marca:</strong> <span id="venta-marca"></span></p>
           <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
         </div>
@@ -181,7 +181,7 @@
     const precioSpan = document.getElementById('venta-precio');
     const tipoSpan = document.getElementById('venta-tipo');
     const materialSpan = document.getElementById('venta-material');
-    const colorSpan = document.getElementById('venta-color');
+    
     const marcaSpan = document.getElementById('venta-marca');
     const finalSpan = document.getElementById('precio-final');
     const datosProducto = document.getElementById('datos-producto');
@@ -203,7 +203,7 @@
             const data = Object.values(snapshot.val())[0];
             tipoSpan.textContent = data.tipo || '';
             materialSpan.textContent = data.material || '';
-            colorSpan.textContent = data.color || '';
+            
             marcaSpan.textContent = data.marca || '';
             precioBase = parseFloat(data.precioVenta || 0);
             precioSpan.textContent = precioBase.toFixed(2);
