@@ -379,12 +379,7 @@
         moneda: document.getElementById('moneda').value,
         precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
       };
-
-      if (!venta.clienteNombre || !venta.clienteDNI || !venta.codigoSKU || !venta.fecha) {
-        alert('Completar todos los datos obligatorios.');
-        return;
-      }
-
+     
       db.ref('ventas_marroquineria').push(venta)
         .then(() => {
           alert('Venta registrada correctamente');
