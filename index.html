@@ -230,7 +230,6 @@
   }
 };
 
-// Función para cargar datos en la tabla según la consulta
 function cargarConsulta() {
   const tipo = document.getElementById('tipo-consulta').value;
   const tablaCont = document.getElementById('tabla-consultas');
@@ -268,7 +267,9 @@ function cargarConsulta() {
     </table>`;
 
     tablaCont.innerHTML = html;
-}
+  });  // <-- Aquí cierras el callback snapshot
+}  // <-- Aquí cierras la función cargarConsulta
+
 
 // Funciones básicas para editar y eliminar
 function editarItem(tipo, key) {
