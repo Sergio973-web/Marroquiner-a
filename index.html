@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestión Marroquinería</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <!-- Librería para escaneo -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-3xl p-6 bg-white rounded-2xl shadow-lg">
+    <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2 cursor-pointer" onclick="location.reload()">Gestión Marroquinería</h1>
+    <p class="text-center text-gray-600 text-lg mb-6">Sistema de Gestión Comercial - Marroquinería</p>
+
+    <div class="grid grid-cols-2 gap-6 mb-8">
+      <button onclick="mostrarFormulario('ingreso')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-lg font-semibold">Ingreso Producto</button>
+      <button onclick="mostrarFormulario('venta')" class="bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-semibold">Venta Producto</button>
+      <button onclick="mostrarFormulario('consulta')" class="bg-gray-700 hover:bg-gray-800 text-white py-4 rounded-xl text-lg font-semibold col-span-2">Consultas</button>
+    </div>
+
+    <div id="formulario" class="mt-4"></div>
+  </div>
+
+  <!-- Contenedor para el escáner (oculto hasta activar) -->
+  <div id="scanner-container" class="fixed inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center p-4 hidden z-50">
+    <div id="reader" style="width:300px; max-width:90vw;"></div>
+    <button onclick="cerrarScanner()" class="mt-4 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">Cerrar Escáner</button>
+  </div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAd_SRGQ2ZF4LZ-hSB7pgXW3db0pvXWMnY",
+    authDomain: "arbol-generealogico-burke.firebaseapp.com",
+    databaseURL: "https://arbol-generealogico-burke-default-rtdb.firebaseio.com",
+    projectId: "arbol-generealogico-burke",
+    storageBucket: "arbol-generealogico-burke.firebasestorage.app",
+    messagingSenderId: "167250645470",
+    appId: "1:167250645470:web:2dff2641859f505a09cd4f",
+    measurementId: "G-X8KV1ZW18V"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function parseDecimal(valor) {
+    if (valor == null) return 0;
+    valor = String(valor).trim().replace(',', '.');
+    let num = parseFloat(valor);
+    return isNaN(num) ? 0 : +num.toFixed(2);
+  }
+
+  let html5QrcodeScanner;
+  let inputSkuActual = null;
+
+  function abrirScanner(inputSkuId) {
+    inputSkuActual = inputSkuId;
+    document.getElementById('scanner-container').classList.remove('hidden');
+
+    if (html5QrcodeScanner) {
+      html5QrcodeScanner.clear().then(() => iniciarEscaneo()).catch(() => iniciarEscaneo());
+    } else {
+      iniciarEscaneo();
+    }
+  }
+
+  function iniciarEscaneo() {
+    html5QrcodeScanner = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: {width: 250, height: 250} };
+
+    html5QrcodeScanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        html5QrcodeScanner.stop();
+        document.getElementById('scanner-container').classList.add('hidden');
+        if(inputSkuActual) {
+          const input = document.getElementById(inputSkuActual);
+          if(input){
+            input.value = decodedText;
+            input.dispatchEvent(new Event('blur'));
+          }
+        }
+      },
+      (_) => {}
+    ).catch(err => {
+      alert('Error iniciando la cámara: ' + err);
+      document.getElementById('scanner-container').classList.add('hidden');
+    });
+  }
+
+  function cerrarScanner() {
+    if(html5QrcodeScanner){
+      html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
+    }
+    document.getElementById('scanner-container').classList.add('hidden');
+  }
+
+  window.mostrarFormulario = function(tipo) {
+  const cont = document.getElementById('formulario');
+  cont.innerHTML = '';
+
+  if (tipo === 'ingreso') {
+    cont.innerHTML = `
+      <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
+      <form id="form-ingreso" class="grid grid-cols-1 gap-4">
+        <div class="flex items-center space-x-2">
+          <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
+          <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
+        </div>
+        <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
+        <input class="border p-2 rounded" type="text" placeholder="Material" required />
+        <input class="border p-2 rounded" type="text" placeholder="Color" required />
+        <input class="border p-2 rounded" type="text" placeholder="Marca" />
+        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
+        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
+        <input class="border p-2 rounded" type="date" required />
+        <select class="border p-2 rounded" required>
+          <option value="">Estado</option>
+          <option value="nuevo">Nuevo</option>
+          <option value="usado">Usado</option>
+          <option value="remodelado">Remodelado</option>
+        </select>
+        <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+      </form>
+    `;
+  } 
+  else if (tipo === 'venta') {
+    cont.innerHTML = `
+      <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
+      <form id="form-venta" class="grid grid-cols-1 gap-4">
+        <input class="border p-2 rounded" type="date" required />
+        <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" required />
+        <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" required />
+        <div class="flex items-center space-x-2">
+          <input id="sku-buscar" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" required />
+          <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
+        </div>
+
+        <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
+          <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
+          <p><strong>Material:</strong> <span id="venta-material"></span></p>
+          <p><strong>Color:</strong> <span id="venta-color"></span></p>
+          <p><strong>Marca:</strong> <span id="venta-marca"></span></p>
+          <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
+        </div>
+
+        <label>Bonificación (%):
+          <input class="border p-2 rounded w-full" type="number" id="bonificacion" value="0" min="0" max="100" />
+        </label>
+
+        <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
+
+        <label>Forma de pago:
+          <select class="border p-2 rounded w-full" id="forma-pago" required>
+            <option value="">Seleccionar</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta de crédito</option>
+          </select>
+        </label>
+
+        <label>Moneda:
+          <select class="border p-2 rounded w-full" id="moneda" required>
+            <option value="ARS">Pesos</option>
+            <option value="USD">Dólares</option>
+          </select>
+        </label>
+
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
+      </form>
+    `;
+
+    // Asignar listeners justo después de inyectar el formulario
+    const skuInput = document.getElementById('sku-buscar');
+    const bonifInput = document.getElementById('bonificacion');
+    const precioSpan = document.getElementById('venta-precio');
+    const tipoSpan = document.getElementById('venta-tipo');
+    const materialSpan = document.getElementById('venta-material');
+    const colorSpan = document.getElementById('venta-color');
+    const marcaSpan = document.getElementById('venta-marca');
+    const finalSpan = document.getElementById('precio-final');
+    const datosProducto = document.getElementById('datos-producto');
+
+    let precioBase = 0;
+
+    skuInput.addEventListener('blur', () => {
+      const sku = skuInput.value.trim();
+      if (!sku) return;
+
+      console.log("Buscando SKU:", sku);
+
+      db.ref('marroquineria')
+        .orderByChild('codigoSKU')
+        .equalTo(sku)
+        .limitToFirst(1)
+        .once('value', snapshot => {
+          if (snapshot.exists()) {
+            const data = Object.values(snapshot.val())[0];
+            tipoSpan.textContent = data.tipo || '';
+            materialSpan.textContent = data.material || '';
+            colorSpan.textContent = data.color || '';
+            marcaSpan.textContent = data.marca || '';
+            precioBase = parseFloat(data.precioVenta || 0);
+            precioSpan.textContent = precioBase.toFixed(2);
+            finalSpan.textContent = precioBase.toFixed(2);
+            datosProducto.classList.remove('hidden');
+          } else {
+            alert('Código SKU no encontrado en marroquinería');
+            datosProducto.classList.add('hidden');
+            precioBase = 0;
+            precioSpan.textContent = '0.00';
+            finalSpan.textContent = '0.00';
+          }
+        });
+    });
+
+    bonifInput.addEventListener('input', () => {
+      const bonif = parseFloat(bonifInput.value) || 0;
+      const final = precioBase - (precioBase * bonif / 100);
+      finalSpan.textContent = final.toFixed(2);
+    });
+  }
+  else if (tipo === 'consulta') {
+    cont.innerHTML = `
+      <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
+      <label class="block mb-4">
+        <span class="text-gray-700">Seleccionar tipo:</span>
+        <select id="tipo-consulta" class="border p-2 rounded w-full">
+          <option value="marroquineria">Productos</option>
+          <option value="ventas_marroquineria">Ventas</option>
+        </select>
+      </label>
+      <div id="tabla-consultas" class="overflow-x-auto mt-4"></div>
+    `;
+
+    document.getElementById('tipo-consulta').addEventListener('change', cargarConsulta);
+    cargarConsulta();
+  }
+};
+
+  function cargarConsulta() {
+    const tipo = document.getElementById('tipo-consulta').value;
+    const tablaCont = document.getElementById('tabla-consultas');
+
+    db.ref(tipo).limitToLast(10).once('value', snapshot => {
+      if (!snapshot.exists()) {
+        tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
+        return;
+      }
+
+      const datos = snapshot.val();
+      const entradas = Object.entries(datos);
+      const claves = Object.keys(entradas[0][1] || {});
+
+      let html = `<table class="min-w-full bg-white border border-gray-300">
+        <thead>
+          <tr>
+            ${claves.map(c => `<th class="px-4 py-2 border">${c}</th>`).join('')}
+            <th class="px-4 py-2 border">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${entradas.map(([key, item]) => `
+            <tr>
+              ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
+              <td class="px-4 py-2 border text-center">
+                <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
+                <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+
+      tablaCont.innerHTML = html;
+    });
+  }
+
+  function eliminarItem(tipo, id) {
+    if (confirm('¿Estás seguro de eliminar este registro?')) {
+      db.ref(`${tipo}/${id}`).remove().then(() => {
+        alert('Registro eliminado');
+        cargarConsulta();
+      }).catch(e => alert('Error al eliminar: ' + e.message));
+    }
+  }
+
+  function editarItem(tipo, id) {
+    alert('Función de edición aún no implementada para simplificar.');
+  }
+
+  // Manejo global de formularios ingreso y venta
+  document.addEventListener('submit', e => {
+    if (e.target.id === 'form-ingreso') {
+      e.preventDefault();
+      const form = e.target;
+      const inputs = form.querySelectorAll('input, select, textarea');
+      let producto = {
+        codigoSKU: inputs[0].value.trim().toLowerCase(),
+        tipo: inputs[1].value.trim(),
+        material: inputs[2].value.trim(),
+        color: inputs[3].value.trim(),
+        marca: inputs[4].value.trim(),
+        precioCompra: parseDecimal(inputs[5].value),
+        precioVenta: parseDecimal(inputs[6].value),
+        fechaIngreso: inputs[7].value,
+        estado: inputs[8].value,
+        observaciones: inputs[9].value.trim()
+      };
+
+      if (!producto.codigoSKU) {
+        alert('Debe ingresar un Código SKU válido.');
+        return;
+      }
+
+      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(producto.codigoSKU).once('value', snapshot => {
+        if (snapshot.exists()) {
+          alert('Ya existe un producto con ese Código SKU.');
+        } else {
+          db.ref('marroquineria').push(producto)
+            .then(() => {
+              alert('Producto guardado correctamente');
+              form.reset();
+            })
+            .catch(e => alert('Error al guardar: ' + e.message));
+        }
+      });
+    }
+
+    if (e.target.id === 'form-venta') {
+      e.preventDefault();
+      const form = e.target;
+      const inputs = form.querySelectorAll('input, select');
+
+      const venta = {
+        fecha: inputs[0].value,
+        clienteNombre: inputs[1].value.trim(),
+        clienteDNI: inputs[2].value.trim(),
+        codigoSKU: inputs[3].value.trim().toUpperCase(),
+        bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
+        formaPago: document.getElementById('forma-pago').value,
+        moneda: document.getElementById('moneda').value,
+        precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
+      };
+
+      if (!venta.clienteNombre || !venta.clienteDNI || !venta.codigoSKU || !venta.fecha) {
+        alert('Completar todos los datos obligatorios.');
+        return;
+      }
+
+      db.ref('ventas_marroquineria').push(venta)
+        .then(() => {
+          alert('Venta registrada correctamente');
+          form.reset();
+          document.getElementById('datos-producto').classList.add('hidden');
+          document.getElementById('precio-final').textContent = '0';
+        })
+        .catch(e => alert('Error al registrar venta: ' + e.message));
+    }
+  });
+</script>
+
+</body>
+</html>
