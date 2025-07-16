@@ -123,105 +123,130 @@
     `;
   } 
   else if (tipo === 'venta') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
-      <form id="form-venta" class="grid grid-cols-1 gap-4">
-        <input class="border p-2 rounded" type="date" required />
-        <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" required />
-        <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" required />
-        <div class="flex items-center space-x-2">
-          <input id="sku-buscar" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" required />
-          <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        </div>
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
+    <form id="form-venta" class="grid grid-cols-1 gap-4">
+      <input class="border p-2 rounded" type="date" required />
+      <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" required />
+      <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" required />
+      
+      <div class="relative flex items-center space-x-2">
+        <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" required />
+        <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
+        <!-- Contenedor para sugerencias -->
+      </div>
+      <div id="sugerencias-sku" class="absolute bg-white border border-gray-300 rounded w-full max-h-40 overflow-auto z-50 mt-1" style="display:none;"></div>
 
-        <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
-          <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
-          
-          <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
-        </div>
+      <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
+        <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
+        <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
+      </div>
 
-        <label>Bonificación (%):
-          <input class="border p-2 rounded w-full" type="number" id="bonificacion" value="0" min="0" max="100" />
-        </label>
+      <label>Bonificación (%):
+        <input class="border p-2 rounded w-full" type="number" id="bonificacion" value="0" min="0" max="100" />
+      </label>
 
-        <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
+      <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
 
-        <label>Forma de pago:
-          <select class="border p-2 rounded w-full" id="forma-pago" required>
-            <option value="">Seleccionar</option>
-            <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="tarjeta">Tarjeta de crédito</option>
-          </select>
-        </label>
+      <label>Forma de pago:
+        <select class="border p-2 rounded w-full" id="forma-pago" required>
+          <option value="">Seleccionar</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="tarjeta">Tarjeta de crédito</option>
+        </select>
+      </label>
 
-        <label>Moneda:
-          <select class="border p-2 rounded w-full" id="moneda" required>
-            <option value="ARS">Pesos</option>
-            <option value="USD">Dólares</option>
-          </select>
-        </label>
+      <label>Moneda:
+        <select class="border p-2 rounded w-full" id="moneda" required>
+          <option value="ARS">Pesos</option>
+          <option value="USD">Dólares</option>
+        </select>
+      </label>
 
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
-      </form>
-    `;
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
+    </form>
+  `;
 
-    // Asignar listeners justo después de inyectar el formulario
-    const skuInput = document.getElementById('sku-buscar');
-    const bonifInput = document.getElementById('bonificacion');
-    const precioSpan = document.getElementById('venta-precio');
-    const tipoSpan = document.getElementById('venta-tipo');
-    
-    const finalSpan = document.getElementById('precio-final');
-    const datosProducto = document.getElementById('datos-producto');
+  const skuInput = document.getElementById('sku-buscar');
+  const sugerenciasCont = document.getElementById('sugerencias-sku');
+  const bonifInput = document.getElementById('bonificacion');
+  const precioSpan = document.getElementById('venta-precio');
+  const tipoSpan = document.getElementById('venta-tipo');
+  const finalSpan = document.getElementById('precio-final');
+  const datosProducto = document.getElementById('datos-producto');
 
-    let precioBase = 0;
+  let precioBase = 0;
 
-    skuInput.addEventListener('blur', () => {
-      const sku = skuInput.value.trim();
-      if (!sku) return;
+  // Función para mostrar sugerencias
+  skuInput.addEventListener('input', () => {
+    const texto = skuInput.value.trim().toLowerCase();
 
-      console.log("Buscando SKU:", sku);
+    if (!texto) {
+      sugerenciasCont.style.display = 'none';
+      datosProducto.classList.add('hidden');
+      precioBase = 0;
+      precioSpan.textContent = '0.00';
+      finalSpan.textContent = '0.00';
+      return;
+    }
 
-      // --- Aceptar cualquier código alfanumérico (letras, números o mezcla)
-      if (!/^[a-zA-Z0-9]+$/.test(sku)) {
-        alert('El código SKU contiene caracteres no permitidos.');
-        datosProducto.classList.add('hidden');
-        precioBase = 0;
-        precioSpan.textContent = '0.00';
-        finalSpan.textContent = '0.00';
-        return;
-      }
+    // Buscamos productos que empiecen con el texto ingresado (o contengan)
+    // Firebase Realtime DB no tiene contains, solo startsWith con startAt y endAt
+    // Usamos orderByChild y startAt, endAt para simular startsWith
+    const endText = texto + "\uf8ff";
 
-      db.ref('marroquineria')
-        .orderByChild('codigoSKU')
-        .equalTo(sku)
-        .limitToFirst(1)
-        .once('value', snapshot => {
-          if (snapshot.exists()) {
-            const data = Object.values(snapshot.val())[0];
-            tipoSpan.textContent = data.tipo || '';
-            
-            precioBase = parseFloat(data.precioVenta || 0);
+    db.ref('marroquineria')
+      .orderByChild('codigoSKU')
+      .startAt(texto)
+      .endAt(endText)
+      .limitToFirst(10)
+      .once('value', snapshot => {
+        if (!snapshot.exists()) {
+          sugerenciasCont.style.display = 'none';
+          return;
+        }
+        const productos = snapshot.val();
+        const arrProd = Object.values(productos);
+
+        sugerenciasCont.innerHTML = arrProd.map(prod =>
+          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" data-sku="${prod.codigoSKU}" data-tipo="${prod.tipo}" data-precio="${prod.precioVenta}">
+            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+          </div>`
+        ).join('');
+        sugerenciasCont.style.display = 'block';
+
+        // Agregar click a cada sugerencia
+        Array.from(sugerenciasCont.children).forEach(div => {
+          div.addEventListener('click', () => {
+            skuInput.value = div.dataset.sku;
+            tipoSpan.textContent = div.dataset.tipo || '';
+            precioBase = parseFloat(div.dataset.precio) || 0;
             precioSpan.textContent = precioBase.toFixed(2);
             finalSpan.textContent = precioBase.toFixed(2);
             datosProducto.classList.remove('hidden');
-          } else {
-            alert('Código SKU no encontrado en marroquinería');
-            datosProducto.classList.add('hidden');
-            precioBase = 0;
-            precioSpan.textContent = '0.00';
-            finalSpan.textContent = '0.00';
-          }
+            sugerenciasCont.style.display = 'none';
+            bonifInput.value = 0;
+            skuInput.focus();
+          });
         });
-    });
+      });
+  });
 
-    bonifInput.addEventListener('input', () => {
-      const bonif = parseFloat(bonifInput.value) || 0;
-      const final = precioBase - (precioBase * bonif / 100);
-      finalSpan.textContent = final.toFixed(2);
-    });
-  }
+  // Si el usuario pierde foco y no seleccionó, ocultar sugerencias
+  skuInput.addEventListener('blur', () => {
+    setTimeout(() => { // Delay para que el click en sugerencias alcance a registrarse
+      sugerenciasCont.style.display = 'none';
+    }, 200);
+  });
+
+  bonifInput.addEventListener('input', () => {
+    const bonif = parseFloat(bonifInput.value) || 0;
+    const final = precioBase - (precioBase * bonif / 100);
+    finalSpan.textContent = final.toFixed(2);
+  });
+}
+
   else if (tipo === 'consulta') {
     cont.innerHTML = `
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
