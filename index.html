@@ -126,12 +126,12 @@
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
-      <input class="border p-2 rounded" type="date" required />
-      <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" required />
-      <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" required />
+      <input class="border p-2 rounded" type="date" />
+      <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
+      <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
       
       <div class="relative flex items-center space-x-2">
-        <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" required />
+        <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" />
         <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
         <!-- Contenedor para sugerencias -->
       </div>
@@ -149,7 +149,7 @@
       <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
 
       <label>Forma de pago:
-        <select class="border p-2 rounded w-full" id="forma-pago" required>
+        <select class="border p-2 rounded w-full" id="forma-pago">
           <option value="">Seleccionar</option>
           <option value="efectivo">Efectivo</option>
           <option value="transferencia">Transferencia</option>
@@ -158,7 +158,7 @@
       </label>
 
       <label>Moneda:
-        <select class="border p-2 rounded w-full" id="moneda" required>
+        <select class="border p-2 rounded w-full" id="moneda">
           <option value="ARS">Pesos</option>
           <option value="USD">Dólares</option>
         </select>
@@ -167,7 +167,6 @@
       <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
     </form>
   `;
-
   const skuInput = document.getElementById('sku-buscar');
   const sugerenciasCont = document.getElementById('sugerencias-sku');
   const bonifInput = document.getElementById('bonificacion');
