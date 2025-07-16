@@ -99,9 +99,8 @@
     document.getElementById('scanner-container').classList.add('hidden');
   }
 
-  window.mostrarFormulario = function(tipo) {
-  const cont = document.getElementById('formulario');
-  cont.innerHTML = '';
+  const mostrarFormulario = (tipo) => {
+  const cont = document.getElementById('contenedor-principal');
 
   if (tipo === 'ingreso') {
     cont.innerHTML = `
@@ -112,10 +111,8 @@
           <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
         </div>
         <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
-        
         <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
         <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
-        
         <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
       </form>
@@ -167,7 +164,7 @@
       </form>
     `;
 
-    // Asignar listeners justo después de inyectar el formulario
+    // Variables para mostrar y calcular precios
     const skuInput = document.getElementById('sku-buscar');
     const bonifInput = document.getElementById('bonificacion');
     const precioSpan = document.getElementById('venta-precio');
@@ -183,8 +180,6 @@
     skuInput.addEventListener('blur', () => {
       const sku = skuInput.value.trim();
       if (!sku) return;
-
-      console.log("Buscando SKU:", sku);
 
       db.ref('marroquineria')
         .orderByChild('codigoSKU')
@@ -235,126 +230,64 @@
   }
 };
 
-  function cargarConsulta() {
-    const tipo = document.getElementById('tipo-consulta').value;
-    const tablaCont = document.getElementById('tabla-consultas');
+// Función para cargar datos en la tabla según la consulta
+function cargarConsulta() {
+  const tipo = document.getElementById('tipo-consulta').value;
+  const tablaCont = document.getElementById('tabla-consultas');
 
-    db.ref(tipo).limitToLast(10).once('value', snapshot => {
-      if (!snapshot.exists()) {
-        tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
-        return;
-      }
+  db.ref(tipo).limitToLast(10).once('value', snapshot => {
+    if (!snapshot.exists()) {
+      tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
+      return;
+    }
 
-      const datos = snapshot.val();
-      const entradas = Object.entries(datos);
-      const claves = Object.keys(entradas[0][1] || {});
+    const datos = snapshot.val();
+    const entradas = Object.entries(datos);
 
-      let html = `<table class="min-w-full bg-white border border-gray-300">
-        <thead>
+    // Tomamos las claves de la primera entrada para los encabezados
+    const claves = Object.keys(entradas[0][1] || {});
+
+    let html = `<table class="min-w-full bg-white border border-gray-300">
+      <thead>
+        <tr>
+          ${claves.map(c => `<th class="px-4 py-2 border">${c}</th>`).join('')}
+          <th class="px-4 py-2 border">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entradas.map(([key, item]) => `
           <tr>
-            ${claves.map(c => `<th class="px-4 py-2 border">${c}</th>`).join('')}
-            <th class="px-4 py-2 border">Acciones</th>
+            ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
+            <td class="px-4 py-2 border text-center">
+              <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
+              <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          ${entradas.map(([key, item]) => `
-            <tr>
-              ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
-              <td class="px-4 py-2 border text-center">
-                <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
-                <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>`;
+        `).join('')}
+      </tbody>
+    </table>`;
 
-      tablaCont.innerHTML = html;
+    tablaCont.innerHTML = html;
+}
+
+// Funciones básicas para editar y eliminar
+function editarItem(tipo, key) {
+  alert(`Editar ${tipo} con ID ${key} - implementar edición`);
+}
+
+function eliminarItem(tipo, key) {
+  if (!confirm(`¿Seguro querés eliminar el item con ID ${key}?`)) return;
+
+  db.ref(`${tipo}/${key}`).remove()
+    .then(() => {
+      alert('Item eliminado correctamente');
+      cargarConsulta(); // refrescar tabla
+    })
+    .catch(err => {
+      alert('Error al eliminar: ' + err.message);
     });
-  }
+}
 
-  function eliminarItem(tipo, id) {
-    if (confirm('¿Estás seguro de eliminar este registro?')) {
-      db.ref(`${tipo}/${id}`).remove().then(() => {
-        alert('Registro eliminado');
-        cargarConsulta();
-      }).catch(e => alert('Error al eliminar: ' + e.message));
-    }
-  }
-
-  function editarItem(tipo, id) {
-    alert('Función de edición aún no implementada para simplificar.');
-  }
-
-  // Manejo global de formularios ingreso y venta
-  document.addEventListener('submit', e => {
-    if (e.target.id === 'form-ingreso') {
-      e.preventDefault();
-      const form = e.target;
-      const inputs = form.querySelectorAll('input, select, textarea');
-      let producto = {
-        codigoSKU: inputs[0].value.trim().toLowerCase(),
-        tipo: inputs[1].value.trim(),
-        material: inputs[2].value.trim(),
-        color: inputs[3].value.trim(),
-        marca: inputs[4].value.trim(),
-        precioCompra: parseDecimal(inputs[5].value),
-        precioVenta: parseDecimal(inputs[6].value),
-        fechaIngreso: inputs[7].value,
-        estado: inputs[8].value,
-        observaciones: inputs[9].value.trim()
-      };
-
-      if (!producto.codigoSKU) {
-        alert('Debe ingresar un Código SKU válido.');
-        return;
-      }
-
-      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(producto.codigoSKU).once('value', snapshot => {
-        if (snapshot.exists()) {
-          alert('Ya existe un producto con ese Código SKU.');
-        } else {
-          db.ref('marroquineria').push(producto)
-            .then(() => {
-              alert('Producto guardado correctamente');
-              form.reset();
-            })
-            .catch(e => alert('Error al guardar: ' + e.message));
-        }
-      });
-    }
-
-    if (e.target.id === 'form-venta') {
-      e.preventDefault();
-      const form = e.target;
-      const inputs = form.querySelectorAll('input, select');
-
-      const venta = {
-        fecha: inputs[0].value,
-        clienteNombre: inputs[1].value.trim(),
-        clienteDNI: inputs[2].value.trim(),
-        codigoSKU: inputs[3].value.trim().toUpperCase(),
-        bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
-        formaPago: document.getElementById('forma-pago').value,
-        moneda: document.getElementById('moneda').value,
-        precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
-      };
-
-      if (!venta.clienteNombre || !venta.clienteDNI || !venta.codigoSKU || !venta.fecha) {
-        alert('Completar todos los datos obligatorios.');
-        return;
-      }
-
-      db.ref('ventas_marroquineria').push(venta)
-        .then(() => {
-          alert('Venta registrada correctamente');
-          form.reset();
-          document.getElementById('datos-producto').classList.add('hidden');
-          document.getElementById('precio-final').textContent = '0';
-        })
-        .catch(e => alert('Error al registrar venta: ' + e.message));
-    }
-  });
 </script>
 
 </body>
