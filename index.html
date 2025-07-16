@@ -183,6 +183,16 @@
 
       console.log("Buscando SKU:", sku);
 
+      // --- Aceptar cualquier código alfanumérico (letras, números o mezcla)
+      if (!/^[a-zA-Z0-9]+$/.test(sku)) {
+        alert('El código SKU contiene caracteres no permitidos.');
+        datosProducto.classList.add('hidden');
+        precioBase = 0;
+        precioSpan.textContent = '0.00';
+        finalSpan.textContent = '0.00';
+        return;
+      }
+
       db.ref('marroquineria')
         .orderByChild('codigoSKU')
         .equalTo(sku)
@@ -287,23 +297,28 @@
       e.preventDefault();
       const form = e.target;
       const inputs = form.querySelectorAll('input, select, textarea');
-      let producto = {
-        codigoSKU: inputs[0].value.trim().toLowerCase(),
-        tipo: inputs[1].value.trim(),
-        
-        precioCompra: parseDecimal(inputs[5].value),
-        precioVenta: parseDecimal(inputs[6].value),
-        fechaIngreso: inputs[7].value,
-        estado: inputs[8].value,
-        observaciones: inputs[9].value.trim()
-      };
 
-      if (!producto.codigoSKU) {
+      // --- Normalizo el SKU a minúsculas y quito espacios en ingreso
+      let skuIngreso = inputs[0].value.trim().toLowerCase();
+
+      // No valido regex para permitir cualquier tipo de código, solo que no esté vacío
+      if (!skuIngreso) {
         alert('Debe ingresar un Código SKU válido.');
         return;
       }
 
-      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(producto.codigoSKU).once('value', snapshot => {
+      let producto = {
+        codigoSKU: skuIngreso,
+        tipo: inputs[1].value.trim(),
+        
+        precioCompra: parseDecimal(inputs[2].value),
+        precioVenta: parseDecimal(inputs[3].value),
+        fechaIngreso: inputs[4].value,
+        observaciones: inputs[5].value.trim()
+      };
+
+      // Compruebo si ya existe el producto con ese SKU (igual en minúsculas)
+      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(skuIngreso).once('value', snapshot => {
         if (snapshot.exists()) {
           alert('Ya existe un producto con ese Código SKU.');
         } else {
@@ -322,11 +337,18 @@
       const form = e.target;
       const inputs = form.querySelectorAll('input, select');
 
+      let codigoSKUVenta = inputs[3].value.trim();
+
+      if (!codigoSKUVenta) {
+        alert('Debe ingresar un Código SKU válido.');
+        return;
+      }
+
       const venta = {
         fecha: inputs[0].value,
         clienteNombre: inputs[1].value.trim(),
         clienteDNI: inputs[2].value.trim(),
-        codigoSKU: inputs[3].value.trim().toUpperCase(),
+        codigoSKU: codigoSKUVenta,
         bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
         formaPago: document.getElementById('forma-pago').value,
         moneda: document.getElementById('moneda').value,
