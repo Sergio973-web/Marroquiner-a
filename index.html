@@ -68,29 +68,33 @@
   }
 
   function iniciarEscaneo() {
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: {width: 250, height: 250} };
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-    html5QrcodeScanner.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        html5QrcodeScanner.stop();
-        document.getElementById('scanner-container').classList.add('hidden');
-        if(inputSkuActual) {
-          const input = document.getElementById(inputSkuActual);
-          if(input){
-            input.value = decodedText.slice(-5);
-            input.dispatchEvent(new Event('blur'));
-          }
-        }
-      },
-      (_) => {}
-    ).catch(err => {
-      alert('Error iniciando la cámara: ' + err);
+  html5QrcodeScanner.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      html5QrcodeScanner.stop();
       document.getElementById('scanner-container').classList.add('hidden');
-    });
-  }
+
+      const codigoLimpio = decodedText.slice(-5); // <-- ¡Usar los últimos 5 dígitos!
+
+      if (inputSkuActual) {
+        const input = document.getElementById(inputSkuActual);
+        if (input) {
+          input.value = codigoLimpio;
+          input.dispatchEvent(new Event('blur'));
+        }
+      }
+    },
+    (_) => {}
+  ).catch(err => {
+    alert('Error iniciando la cámara: ' + err);
+    document.getElementById('scanner-container').classList.add('hidden');
+  });
+}
+
 
   function cerrarScanner() {
     if(html5QrcodeScanner){
