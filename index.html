@@ -188,7 +188,7 @@
   // Búsqueda en Firebase solamente
   const endText = texto + "\uf8ff";
 
-  db.ref('marroquineria')
+  db.ref('arbolGenealogico/marroquineria')
     .orderByChild('codigoSKU')
     .startAt(texto)
     .endAt(endText)
