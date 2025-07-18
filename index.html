@@ -167,13 +167,15 @@
 
   skuInput.addEventListener('input', buscarYMostrarProducto);
   skuInput.addEventListener('change', buscarYMostrarProducto);
-    // 👉 Nuevo evento para manejar el Enter del escáner o teclado
-  skuInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Evita que se envíe el formulario
-      buscarProductoExacto(); // Busca el producto con coincidencia exacta
-    }
+  let timerBusqueda = null;
+
+  skuInput.addEventListener('input', () => {
+    clearTimeout(timerBusqueda);
+    timerBusqueda = setTimeout(() => {
+      buscarProductoExacto();
+    }, 500); // espera 500ms sin cambios y busca
   });
+
 
   function buscarProductoExacto() {
   let texto = skuInput.value.trim();
