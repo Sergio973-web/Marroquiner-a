@@ -312,9 +312,8 @@
       }
     });
   });
-}
 
-  else if (tipo === 'consulta') {
+    else if (tipo === 'consulta') {
     cont.innerHTML = `
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
       <label class="block mb-4">
@@ -369,6 +368,9 @@
       tablaCont.innerHTML = html;
     });
   }
+function cargarApp() {
+  location.reload();
+}
 
   function eliminarItem(tipo, id) {
     if (confirm('¿Estás seguro de eliminar este registro?')) {
