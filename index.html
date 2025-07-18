@@ -185,13 +185,13 @@
     return;
   }
 
-  const texto = skuInput.value.trim();
- const textoBusqueda = texto.toUpperCase();  // O minúscula, pero que coincida con la base
- const endText = textoBusqueda + "\uf8ff";
+  // Búsqueda en Firebase solamente
+  const endText = texto + "\uf8ff";
 
   db.ref('arbolGenealogico/marroquineria')
+
     .orderByChild('codigoSKU')
-    .startAt(textoBusqueda)
+    .startAt(texto)
     .endAt(endText)
     .limitToFirst(10)
     .once('value', snapshot => {
