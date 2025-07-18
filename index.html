@@ -198,17 +198,17 @@
     });
 }
 
+let ultimoTextoBuscado = '';
 
-  function buscarYMostrarProducto() {
+function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
 
   if (texto.length > 4) {
     texto = texto.slice(-4);
     skuInput.value = texto;
   }
-  
-  
-  if (!texto) {
+
+  if (!texto || texto.length < 2) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
     productoActual = null;
@@ -217,16 +217,19 @@
     return;
   }
 
-  // Búsqueda en Firebase solamente
+  ultimoTextoBuscado = texto; // 👈 Guardamos este valor
+
   const endText = texto + "\uf8ff";
 
   db.ref('marroquineria')
-
     .orderByChild('codigoSKU')
     .startAt(texto)
     .endAt(endText)
     .limitToFirst(30)
     .once('value', snapshot => {
+      // ⚠️ Nos aseguramos de que es la última búsqueda
+      if (texto !== ultimoTextoBuscado) return;
+
       if (!snapshot.exists()) {
         sugerenciasCont.style.display = 'none';
         datosProducto.classList.add('hidden');
@@ -235,7 +238,6 @@
         finalSpan.textContent = '0.00';
         return;
       }
-
       const productosDB = snapshot.val();
       const arrProd = Object.values(productosDB);
 
