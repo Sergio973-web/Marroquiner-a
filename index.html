@@ -275,6 +275,14 @@
     finalSpan.textContent = (precioAplicado * cantidad).toFixed(2);
   }
 
+  function mostrarDatosProducto(producto) {
+    productoActual = producto;
+    tipoSpan.textContent = producto.tipo || '';
+    precioSpan.textContent = parseFloat(producto.precioVenta || producto.precio || 0).toFixed(2);
+    calcularPrecioFinal();
+    datosProducto.classList.remove('hidden');
+  }
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -308,10 +316,12 @@
         alert('Error al guardar la venta.');
       } else {
         alert('Venta registrada correctamente.');
-        cargarApp();
+        location.reload(); // recarga la página para resetear formulario
       }
     });
-  }
+  });
+}
+
 
     else if (tipo === 'consulta') {
     cont.innerHTML = `
@@ -368,9 +378,6 @@
       tablaCont.innerHTML = html;
     });
   }
-function cargarApp() {
-  location.reload();
-}
 
   function eliminarItem(tipo, id) {
     if (confirm('¿Estás seguro de eliminar este registro?')) {
