@@ -80,7 +80,7 @@
         if(inputSkuActual) {
           const input = document.getElementById(inputSkuActual);
           if(input){
-            input.value = decodedText;
+            input.value = decodedText.slice(-5);
             input.dispatchEvent(new Event('blur'));
           }
         }
