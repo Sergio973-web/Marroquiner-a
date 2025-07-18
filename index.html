@@ -176,20 +176,32 @@
   });
 
   function buscarProductoExacto() {
-    let texto = skuInput.value.trim().toLowerCase();
+  let texto = skuInput.value.trim();
 
-    const producto = Object.values(productos).find(p => 
-      p.codigoSKU && p.codigoSKU.toLowerCase() === texto
-    );
-
-    if (producto) {
-      mostrarProducto(producto); // Mostrá los datos como ya hacías antes
-    } else {
-      sugerenciasCont.innerHTML = '';
-      datosProducto.style.display = 'none';
-      console.log("No se encontró el producto exacto con el SKU:", texto);
-    }
+  if (!texto) {
+    sugerenciasCont.innerHTML = '';
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    return;
   }
+
+  db.ref('marroquineria')
+    .orderByChild('codigoSKU')
+    .equalTo(texto)
+    .limitToFirst(1)
+    .once('value', snapshot => {
+      if (snapshot.exists()) {
+        const productosDB = snapshot.val();
+        const producto = Object.values(productosDB)[0];
+        mostrarDatosProducto(producto);
+      } else {
+        sugerenciasCont.innerHTML = '';
+        datosProducto.classList.add('hidden');
+        productoActual = null;
+        console.log("No se encontró el producto exacto con el SKU:", texto);
+      }
+    });
+}
 
   function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
