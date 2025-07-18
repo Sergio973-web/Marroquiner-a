@@ -260,12 +260,6 @@ function calcularPrecioFinal() {
 }
 
 
-  skuInput.addEventListener('blur', () => {
-    setTimeout(() => {
-      sugerenciasCont.style.display = 'none';
-    }, 200);
-  });
-
   cantidadInput.addEventListener('input', calcularPrecioFinal);
 
   function calcularPrecioFinal() {
