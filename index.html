@@ -122,18 +122,17 @@
       </form>
     `;
   } 
-  else if (tipo === 'venta') {
+else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
-      <input class="border p-2 rounded" type="date" />
-      <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
-      <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
+      <input id="fecha" class="border p-2 rounded" type="date" />
+      <input id="cliente" class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
+      <input id="dni" class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
       
       <div class="relative flex items-center space-x-2">
         <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" />
         <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        <!-- Contenedor para sugerencias -->
       </div>
       <div id="sugerencias-sku" class="absolute bg-white border border-gray-300 rounded w-full max-h-40 overflow-auto z-50 mt-1" style="display:none;"></div>
 
@@ -167,6 +166,8 @@
       <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
     </form>
   `;
+
+  const form = document.getElementById('form-venta');
   const skuInput = document.getElementById('sku-buscar');
   const sugerenciasCont = document.getElementById('sugerencias-sku');
   const bonifInput = document.getElementById('bonificacion');
@@ -177,7 +178,6 @@
 
   let precioBase = 0;
 
-  // Función para mostrar sugerencias
   skuInput.addEventListener('input', () => {
     const texto = skuInput.value.trim().toLowerCase();
 
@@ -190,9 +190,6 @@
       return;
     }
 
-    // Buscamos productos que empiecen con el texto ingresado (o contengan)
-    // Firebase Realtime DB no tiene contains, solo startsWith con startAt y endAt
-    // Usamos orderByChild y startAt, endAt para simular startsWith
     const endText = texto + "\uf8ff";
 
     db.ref('marroquineria')
@@ -215,7 +212,6 @@
         ).join('');
         sugerenciasCont.style.display = 'block';
 
-        // Agregar click a cada sugerencia
         Array.from(sugerenciasCont.children).forEach(div => {
           div.addEventListener('click', () => {
             skuInput.value = div.dataset.sku;
@@ -232,9 +228,8 @@
       });
   });
 
-  // Si el usuario pierde foco y no seleccionó, ocultar sugerencias
   skuInput.addEventListener('blur', () => {
-    setTimeout(() => { // Delay para que el click en sugerencias alcance a registrarse
+    setTimeout(() => {
       sugerenciasCont.style.display = 'none';
     }, 200);
   });
@@ -243,6 +238,48 @@
     const bonif = parseFloat(bonifInput.value) || 0;
     const final = precioBase - (precioBase * bonif / 100);
     finalSpan.textContent = final.toFixed(2);
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const fecha = document.getElementById('fecha').value || new Date().toISOString().split('T')[0];
+    const cliente = document.getElementById('cliente').value.trim();
+    const dni = document.getElementById('dni').value.trim();
+    const sku = skuInput.value.trim();
+    const tipo = tipoSpan.textContent.trim();
+    const bonif = parseFloat(bonifInput.value) || 0;
+    const formaPago = document.getElementById('forma-pago').value;
+    const moneda = document.getElementById('moneda').value;
+    const precio = parseFloat(precioSpan.textContent) || 0;
+    const total = parseFloat(finalSpan.textContent) || 0;
+
+    if (!sku || !tipo || precio === 0) {
+      alert('Debe seleccionar un producto válido.');
+      return;
+    }
+
+    const venta = {
+      fecha,
+      cliente,
+      dni,
+      sku,
+      tipo,
+      precio,
+      bonificacion: bonif,
+      total,
+      formaPago,
+      moneda
+    };
+
+    db.ref('ventas').push(venta, (error) => {
+      if (error) {
+        alert('Error al guardar la venta.');
+      } else {
+        alert('Venta registrada correctamente.');
+        cargarApp(); // O lo que uses para recargar
+      }
+    });
   });
 }
 
