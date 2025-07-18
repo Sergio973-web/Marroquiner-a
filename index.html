@@ -104,24 +104,24 @@
   cont.innerHTML = '';
 
   if (tipo === 'ingreso') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
-      <form id="form-ingreso" class="grid grid-cols-1 gap-4">
-        <div class="flex items-center space-x-2">
-          <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
-          <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        </div>
-        <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
-        
-        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
-        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
-        <input class="border p-2 rounded" type="date" required />
-        
-        <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
-      </form>
-    `;
-  } 
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
+    <form id="form-ingreso" class="grid grid-cols-1 gap-4">
+      <div class="flex items-center space-x-2">
+        <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
+        <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
+      </div>
+      <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio promocional (opcional)" id="precio-promocional" />
+      <input class="border p-2 rounded" type="number" min="0" step="1" placeholder="Cantidad mínima para promoción (opcional)" id="cantidad-promocion" />
+      <input class="border p-2 rounded" type="date" required />
+      <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+    </form>
+  `;
+} 
 else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
@@ -129,7 +129,7 @@ else if (tipo === 'venta') {
       <input id="fecha" class="border p-2 rounded" type="date" />
       <input id="cliente" class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
       <input id="dni" class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
-      
+
       <div class="relative flex items-center space-x-2">
         <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" />
         <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
@@ -139,6 +139,9 @@ else if (tipo === 'venta') {
       <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
         <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
         <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
+        <label>Cantidad:
+          <input id="venta-cantidad" type="number" value="1" min="1" class="border p-2 rounded w-full" />
+        </label>
       </div>
 
       <label>Bonificación (%):
@@ -174,13 +177,14 @@ else if (tipo === 'venta') {
   const precioSpan = document.getElementById('venta-precio');
   const tipoSpan = document.getElementById('venta-tipo');
   const finalSpan = document.getElementById('precio-final');
+  const cantidadInput = document.getElementById('venta-cantidad');
   const datosProducto = document.getElementById('datos-producto');
 
   let precioBase = 0;
+  let productoActual = null;
 
   skuInput.addEventListener('input', () => {
     const texto = skuInput.value.trim().toLowerCase();
-
     if (!texto) {
       sugerenciasCont.style.display = 'none';
       datosProducto.classList.add('hidden');
@@ -206,7 +210,7 @@ else if (tipo === 'venta') {
         const arrProd = Object.values(productos);
 
         sugerenciasCont.innerHTML = arrProd.map(prod =>
-          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" data-sku="${prod.codigoSKU}" data-tipo="${prod.tipo}" data-precio="${prod.precioVenta}">
+          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" data-sku="${prod.codigoSKU}" data-tipo="${prod.tipo}" data-precio="${prod.precioVenta}" data-promocion="${prod.precioPromocional || 0}" data-cantidad-promo="${prod.cantidadPromo || 0}">
             <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
           </div>`
         ).join('');
@@ -217,8 +221,12 @@ else if (tipo === 'venta') {
             skuInput.value = div.dataset.sku;
             tipoSpan.textContent = div.dataset.tipo || '';
             precioBase = parseFloat(div.dataset.precio) || 0;
-            precioSpan.textContent = precioBase.toFixed(2);
-            finalSpan.textContent = precioBase.toFixed(2);
+            productoActual = {
+              precio: parseFloat(div.dataset.precio) || 0,
+              promocion: parseFloat(div.dataset.promocion) || 0,
+              cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
+            };
+            calcularPrecioFinal();
             datosProducto.classList.remove('hidden');
             sugerenciasCont.style.display = 'none';
             bonifInput.value = 0;
@@ -234,11 +242,25 @@ else if (tipo === 'venta') {
     }, 200);
   });
 
-  bonifInput.addEventListener('input', () => {
+  bonifInput.addEventListener('input', calcularPrecioFinal);
+  cantidadInput.addEventListener('input', calcularPrecioFinal);
+
+  function calcularPrecioFinal() {
+    if (!productoActual) return;
     const bonif = parseFloat(bonifInput.value) || 0;
+    const cantidad = parseInt(cantidadInput.value) || 1;
+
+    let precioAplicado = productoActual.precio;
+    if (productoActual.promocion && cantidad >= productoActual.cantidadPromo) {
+      precioAplicado = productoActual.promocion;
+    }
+
+    precioBase = precioAplicado;
+    precioSpan.textContent = precioBase.toFixed(2);
+
     const final = precioBase - (precioBase * bonif / 100);
     finalSpan.textContent = final.toFixed(2);
-  });
+  }
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -253,6 +275,7 @@ else if (tipo === 'venta') {
     const moneda = document.getElementById('moneda').value;
     const precio = parseFloat(precioSpan.textContent) || 0;
     const total = parseFloat(finalSpan.textContent) || 0;
+    const cantidad = parseInt(cantidadInput.value) || 1;
 
     if (!sku || !tipo || precio === 0) {
       alert('Debe seleccionar un producto válido.');
@@ -269,7 +292,8 @@ else if (tipo === 'venta') {
       bonificacion: bonif,
       total,
       formaPago,
-      moneda
+      moneda,
+      cantidad
     };
 
     db.ref('ventas').push(venta, (error) => {
@@ -277,7 +301,7 @@ else if (tipo === 'venta') {
         alert('Error al guardar la venta.');
       } else {
         alert('Venta registrada correctamente.');
-        cargarApp(); // O lo que uses para recargar
+        cargarApp();
       }
     });
   });
