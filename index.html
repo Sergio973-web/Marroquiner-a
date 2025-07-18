@@ -183,7 +183,7 @@ function buscarYMostrarProducto() {
     skuInput.value = texto;
   }
 
-  if (!texto || texto.length < 2) {
+  if (!texto || texto.length < 1) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
     productoActual = null;
