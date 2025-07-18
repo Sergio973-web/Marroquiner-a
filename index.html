@@ -154,51 +154,24 @@
     </form>
   `;
 
-  const form = document.getElementById('form-venta');
-  const skuInput = document.getElementById('sku-buscar');
-  const sugerenciasCont = document.getElementById('sugerencias-sku');
-  const precioSpan = document.getElementById('venta-precio');
-  const tipoSpan = document.getElementById('venta-tipo');
-  const finalSpan = document.getElementById('precio-final');
-  const cantidadInput = document.getElementById('venta-cantidad');
-  const datosProducto = document.getElementById('datos-producto');
+  // Variables
+const form = document.getElementById('form-venta');
+const skuInput = document.getElementById('sku-buscar');
+const sugerenciasCont = document.getElementById('sugerencias-sku');
+const precioSpan = document.getElementById('venta-precio');
+const tipoSpan = document.getElementById('venta-tipo');
+const finalSpan = document.getElementById('precio-final');
+const cantidadInput = document.getElementById('venta-cantidad');
+const datosProducto = document.getElementById('datos-producto');
 
-  let productoActual = null;
-
-  skuInput.addEventListener('input', buscarYMostrarProducto);
-  skuInput.addEventListener('change', buscarYMostrarProducto);
-  // 👉 Nuevo evento para manejar el Enter del escáner o teclado
-  skuInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Evita que se envíe el formulario
-      buscarProductoExacto(); // Busca el producto con coincidencia exacta
-    }
-  });
-
-  function buscarProductoExacto() {
-  let texto = skuInput.value.trim().toLowerCase();
-
-  if (!texto) return;
-
-  db.ref('marroquineria')
-    .orderByChild('codigoSKU')
-    .equalTo(texto)
-    .limitToFirst(1)
-    .once('value', snapshot => {
-      if (snapshot.exists()) {
-        const productosDB = snapshot.val();
-        const producto = Object.values(productosDB)[0];
-        mostrarProducto(producto); // ✅ mostrás en base a Firebase
-      } else {
-        sugerenciasCont.innerHTML = '';
-        datosProducto.classList.add('hidden');
-        productoActual = null;
-        console.log("No se encontró el producto exacto con el SKU:", texto);
-      }
-    });
-}
-
+let productoActual = null;
 let ultimoTextoBuscado = '';
+
+// Evento para buscar mientras escribe
+skuInput.addEventListener('input', () => {
+  ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
+  buscarYMostrarProducto();
+});
 
 function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
@@ -217,8 +190,6 @@ function buscarYMostrarProducto() {
     return;
   }
 
-  ultimoTextoBuscado = texto; // 👈 Guardamos este valor
-
   const endText = texto + "\uf8ff";
 
   db.ref('marroquineria')
@@ -227,7 +198,7 @@ function buscarYMostrarProducto() {
     .endAt(endText)
     .limitToFirst(30)
     .once('value', snapshot => {
-      // ⚠️ Nos aseguramos de que es la última búsqueda
+      // Evitar resultados de búsquedas antiguas si se escribió rápido
       if (texto !== ultimoTextoBuscado) return;
 
       if (!snapshot.exists()) {
@@ -238,26 +209,29 @@ function buscarYMostrarProducto() {
         finalSpan.textContent = '0.00';
         return;
       }
+
       const productosDB = snapshot.val();
       const arrProd = Object.values(productosDB);
 
+      // Mostrar sugerencias
       sugerenciasCont.innerHTML = arrProd.map(prod =>
-        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
-          data-sku="${prod.codigoSKU}" 
-          data-tipo="${prod.tipo}" 
-          data-precio="${prod.precioVenta}" 
-          data-promocion="${prod.precioPromocional || 0}" 
-          data-cantidad-promo="${prod.cantidadPromo || 0}">
-          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200"
+            data-sku="${prod.codigoSKU}"
+            data-tipo="${prod.tipo}"
+            data-precio="${prod.precioVenta}"
+            data-promocion="${prod.precioPromocional || 0}"
+            data-cantidad-promo="${prod.cantidadPromo || 0}">
+            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
         </div>`
       ).join('');
       sugerenciasCont.style.display = 'block';
 
-      // Agregar evento a cada sugerencia
+      // Agregar eventos de selección a cada sugerencia
       Array.from(sugerenciasCont.children).forEach(div => {
         div.addEventListener('click', () => {
           skuInput.value = div.dataset.sku;
           tipoSpan.textContent = div.dataset.tipo || '';
+          precioSpan.textContent = parseFloat(div.dataset.precio).toFixed(2);
           productoActual = {
             sku: div.dataset.sku,
             tipo: div.dataset.tipo,
@@ -273,6 +247,22 @@ function buscarYMostrarProducto() {
       });
     });
 }
+
+function calcularPrecioFinal() {
+  if (!productoActual) return;
+  const cantidad = parseInt(cantidadInput?.value) || 1;
+  const promo = productoActual.promocion;
+  const cantPromo = productoActual.cantidadPromo;
+
+  let final;
+  if (promo > 0 && cantidad >= cantPromo) {
+    final = promo * cantidad;
+  } else {
+    final = productoActual.precio * cantidad;
+  }
+  finalSpan.textContent = final.toFixed(2);
+}
+
 
   skuInput.addEventListener('blur', () => {
     setTimeout(() => {
