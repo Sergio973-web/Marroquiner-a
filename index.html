@@ -188,7 +188,7 @@
   // Búsqueda en Firebase solamente
   const endText = texto + "\uf8ff";
 
-  db.ref('arbolGenealogico/marroquineria')
+  db.ref('marroquineria')
 
     .orderByChild('codigoSKU')
     .startAt(texto)
@@ -332,7 +332,7 @@
     const tipo = document.getElementById('tipo-consulta').value;
     const tablaCont = document.getElementById('tabla-consultas');
 
-    db.ref('arbolGenealogico/' + tipo).limitToLast(10).once('value', snapshot => {
+    db.ref(tipo).limitToLast(10).once('value', snapshot => {
 
       if (!snapshot.exists()) {
         tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
@@ -524,14 +524,14 @@
       };
 
      // Compruebo si ya existe el producto con ese SKU (igual en minúsculas)
-    db.ref('arbolGenealogico/marroquineria')
+    db.ref('marroquineria')
       .orderByChild('codigoSKU')
       .equalTo(skuIngreso)
       .once('value', snapshot => {
         if (snapshot.exists()) {
           alert('Ya existe un producto con ese Código SKU.');
         } else {
-          db.ref('arbolGenealogico/marroquineria').push(producto)
+          db.ref('marroquineria').push(producto)
             .then(() => {
               alert('Producto guardado correctamente');
               form.reset();
