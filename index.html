@@ -45,7 +45,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-
+  
   function parseDecimal(valor) {
     if (valor == null) return 0;
     valor = String(valor).trim().replace(',', '.');
@@ -68,29 +68,33 @@
   }
 
   function iniciarEscaneo() {
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: {width: 250, height: 250} };
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-    html5QrcodeScanner.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        html5QrcodeScanner.stop();
-        document.getElementById('scanner-container').classList.add('hidden');
-        if(inputSkuActual) {
-          const input = document.getElementById(inputSkuActual);
-          if(input){
-            input.value = decodedText;
-            input.dispatchEvent(new Event('blur'));
-          }
-        }
-      },
-      (_) => {}
-    ).catch(err => {
-      alert('Error iniciando la cámara: ' + err);
+  html5QrcodeScanner.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      html5QrcodeScanner.stop();
       document.getElementById('scanner-container').classList.add('hidden');
-    });
-  }
+
+      const codigoLimpio = decodedText.slice(-4); // <-- ¡Usar los últimos 4 dígitos!
+
+      if (inputSkuActual) {
+        const input = document.getElementById(inputSkuActual);
+        if (input) {
+          input.value = codigoLimpio;
+          input.dispatchEvent(new Event('blur'));
+        }
+      }
+    },
+    (_) => {}
+  ).catch(err => {
+    alert('Error iniciando la cámara: ' + err);
+    document.getElementById('scanner-container').classList.add('hidden');
+  });
+}
+
 
   function cerrarScanner() {
     if(html5QrcodeScanner){
@@ -104,128 +108,223 @@
   cont.innerHTML = '';
 
   if (tipo === 'ingreso') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
-      <form id="form-ingreso" class="grid grid-cols-1 gap-4">
-        <div class="flex items-center space-x-2">
-          <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
-          <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        </div>
-        <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
-        <input class="border p-2 rounded" type="text" placeholder="Material" required />
-        <input class="border p-2 rounded" type="text" placeholder="Color" required />
-        <input class="border p-2 rounded" type="text" placeholder="Marca" />
-        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
-        <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
-        <input class="border p-2 rounded" type="date" required />
-        <select class="border p-2 rounded" required>
-          <option value="">Estado</option>
-          <option value="nuevo">Nuevo</option>
-          <option value="usado">Usado</option>
-          <option value="remodelado">Remodelado</option>
-        </select>
-        <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
-      </form>
-    `;
-  } 
-  else if (tipo === 'venta') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
-      <form id="form-venta" class="grid grid-cols-1 gap-4">
-        <input class="border p-2 rounded" type="date" required />
-        <input class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" required />
-        <input class="border p-2 rounded" type="text" placeholder="DNI Cliente" required />
-        <div class="flex items-center space-x-2">
-          <input id="sku-buscar" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" required />
-          <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        </div>
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
+    <form id="form-ingreso" class="grid grid-cols-1 gap-4">
+      <div class="flex items-center space-x-2">
+        <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
+        <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
+      </div>
+      <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
+      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio promocional (opcional)" id="precio-promocional" />
+      <input class="border p-2 rounded" type="number" min="0" step="1" placeholder="Cantidad mínima para promoción (opcional)" id="cantidad-promocion" />
+      <input class="border p-2 rounded" type="date" required />
+      <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+    </form>
+  `;
+} 
+ else if (tipo === 'venta') {
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
+    <form id="form-venta" class="grid grid-cols-1 gap-4">
+      <input id="fecha" class="border p-2 rounded" type="date" />
+      <input id="cliente" class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
+      <input id="dni" class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
 
-        <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
-          <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
-          <p><strong>Material:</strong> <span id="venta-material"></span></p>
-          <p><strong>Color:</strong> <span id="venta-color"></span></p>
-          <p><strong>Marca:</strong> <span id="venta-marca"></span></p>
-          <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
-        </div>
+      <div class="relative flex items-center space-x-2">
+        <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" />
+        <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
+      </div>
+      <div id="sugerencias-sku" class="absolute bg-white border border-gray-300 rounded w-full max-h-40 overflow-auto z-50 mt-1" style="display:none;"></div>
 
-        <label>Bonificación (%):
-          <input class="border p-2 rounded w-full" type="number" id="bonificacion" value="0" min="0" max="100" />
+      <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
+        <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
+        <p><strong>Precio aplicado:</strong> $<span id="venta-precio"></span></p>
+        <label>Cantidad:
+          <input id="venta-cantidad" type="number" value="1" min="1" class="border p-2 rounded w-full" />
         </label>
+      </div>
 
-        <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
+      <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
 
-        <label>Forma de pago:
-          <select class="border p-2 rounded w-full" id="forma-pago" required>
-            <option value="">Seleccionar</option>
-            <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="tarjeta">Tarjeta de crédito</option>
-          </select>
-        </label>
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
+    </form>
+  `;
 
-        <label>Moneda:
-          <select class="border p-2 rounded w-full" id="moneda" required>
-            <option value="ARS">Pesos</option>
-            <option value="USD">Dólares</option>
-          </select>
-        </label>
+  // Variables
+const form = document.getElementById('form-venta');
+const skuInput = document.getElementById('sku-buscar');
+const sugerenciasCont = document.getElementById('sugerencias-sku');
+const precioSpan = document.getElementById('venta-precio');
+const tipoSpan = document.getElementById('venta-tipo');
+const finalSpan = document.getElementById('precio-final');
+const cantidadInput = document.getElementById('venta-cantidad');
+const datosProducto = document.getElementById('datos-producto');
 
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
-      </form>
-    `;
+let productoActual = null;
 
-    // Asignar listeners justo después de inyectar el formulario
-    const skuInput = document.getElementById('sku-buscar');
-    const bonifInput = document.getElementById('bonificacion');
-    const precioSpan = document.getElementById('venta-precio');
-    const tipoSpan = document.getElementById('venta-tipo');
-    const materialSpan = document.getElementById('venta-material');
-    const colorSpan = document.getElementById('venta-color');
-    const marcaSpan = document.getElementById('venta-marca');
-    const finalSpan = document.getElementById('precio-final');
-    const datosProducto = document.getElementById('datos-producto');
 
-    let precioBase = 0;
+// Evento para buscar mientras escribe
+skuInput.addEventListener('input', () => {
+  ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
+  buscarYMostrarProducto();
+});
 
-    skuInput.addEventListener('blur', () => {
-      const sku = skuInput.value.trim();
-      if (!sku) return;
+let ultimoTextoBuscado = '';
 
-      console.log("Buscando SKU:", sku);
+function buscarYMostrarProducto() {
+  let texto = skuInput.value.trim().toLowerCase();
 
-      db.ref('marroquineria')
-        .orderByChild('codigoSKU')
-        .equalTo(sku)
-        .limitToFirst(1)
-        .once('value', snapshot => {
-          if (snapshot.exists()) {
-            const data = Object.values(snapshot.val())[0];
-            tipoSpan.textContent = data.tipo || '';
-            materialSpan.textContent = data.material || '';
-            colorSpan.textContent = data.color || '';
-            marcaSpan.textContent = data.marca || '';
-            precioBase = parseFloat(data.precioVenta || 0);
-            precioSpan.textContent = precioBase.toFixed(2);
-            finalSpan.textContent = precioBase.toFixed(2);
-            datosProducto.classList.remove('hidden');
-          } else {
-            alert('Código SKU no encontrado en marroquinería');
-            datosProducto.classList.add('hidden');
-            precioBase = 0;
-            precioSpan.textContent = '0.00';
-            finalSpan.textContent = '0.00';
-          }
-        });
-    });
-
-    bonifInput.addEventListener('input', () => {
-      const bonif = parseFloat(bonifInput.value) || 0;
-      const final = precioBase - (precioBase * bonif / 100);
-      finalSpan.textContent = final.toFixed(2);
-    });
+  if (!texto || texto.length < 1) {
+    sugerenciasCont.style.display = 'none';
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    finalSpan.textContent = '0.00';
+    return;
   }
-  else if (tipo === 'consulta') {
+
+  
+
+  const endText = texto + "\uf8ff";
+
+  db.ref('marroquineria')
+    .orderByChild('codigoSKU')
+    .startAt(texto)
+    .endAt(endText)
+    .limitToFirst(30)
+    .once('value', snapshot => {
+      
+      if (!snapshot.exists()) {
+        sugerenciasCont.style.display = 'none';
+        datosProducto.classList.add('hidden');
+        productoActual = null;
+        precioSpan.textContent = '0.00';
+        finalSpan.textContent = '0.00';
+        return;
+      }
+
+      const productosDB = snapshot.val();
+      const arrProd = Object.values(productosDB);
+
+      sugerenciasCont.innerHTML = arrProd.map(prod =>
+        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+          data-sku="${prod.codigoSKU}" 
+          data-tipo="${prod.tipo}" 
+          data-precio="${prod.precioVenta}" 
+          data-promocion="${prod.precioPromocional || 0}" 
+          data-cantidad-promo="${prod.cantidadPromo || 0}">
+          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+        </div>`
+      ).join('');
+      sugerenciasCont.style.display = 'block';
+
+      // Eventos click
+      Array.from(sugerenciasCont.children).forEach(div => {
+        div.addEventListener('click', () => {
+          skuInput.value = div.dataset.sku;
+          tipoSpan.textContent = div.dataset.tipo || '';
+          productoActual = {
+            sku: div.dataset.sku,
+            tipo: div.dataset.tipo,
+            precio: parseFloat(div.dataset.precio) || 0,
+            promocion: parseFloat(div.dataset.promocion) || 0,
+            cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
+          };
+          calcularPrecioFinal();
+          datosProducto.classList.remove('hidden');
+          sugerenciasCont.style.display = 'none';
+          skuInput.focus();
+        });
+      });
+    });
+}
+
+
+function calcularPrecioFinal() {
+  if (!productoActual) return;
+  const cantidad = parseInt(cantidadInput?.value) || 1;
+  const promo = productoActual.promocion;
+  const cantPromo = productoActual.cantidadPromo;
+
+  let final;
+  if (promo > 0 && cantidad >= cantPromo) {
+    final = promo * cantidad;
+  } else {
+    final = productoActual.precio * cantidad;
+  }
+  finalSpan.textContent = final.toFixed(2);
+}
+
+
+  cantidadInput.addEventListener('input', calcularPrecioFinal);
+
+  function calcularPrecioFinal() {
+    if (!productoActual) return;
+
+    const cantidad = parseInt(cantidadInput.value) || 1;
+    let precioAplicado = productoActual.precio;
+
+    if (productoActual.promocion > 0 && cantidad >= productoActual.cantidadPromo) {
+      precioAplicado = productoActual.promocion;
+    }
+
+    precioSpan.textContent = precioAplicado.toFixed(2);
+    finalSpan.textContent = (precioAplicado * cantidad).toFixed(2);
+  }
+
+  function mostrarDatosProducto(producto) {
+    productoActual = producto;
+    tipoSpan.textContent = producto.tipo || '';
+    precioSpan.textContent = parseFloat(producto.precioVenta || producto.precio || 0).toFixed(2);
+    calcularPrecioFinal();
+    datosProducto.classList.remove('hidden');
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const fecha = document.getElementById('fecha').value || new Date().toISOString().split('T')[0];
+    const cliente = document.getElementById('cliente').value.trim();
+    const dni = document.getElementById('dni').value.trim();
+    const sku = skuInput.value.trim();
+    const tipo = tipoSpan.textContent.trim();
+    const precio = parseFloat(precioSpan.textContent) || 0;
+    const total = parseFloat(finalSpan.textContent) || 0;
+    const cantidad = parseInt(cantidadInput.value) || 1;
+
+    if (!sku || !tipo || precio === 0) {
+      alert('Debe seleccionar un producto válido.');
+      return;
+    }
+
+    const venta = {
+      fecha,
+      cliente,
+      dni,
+      sku,
+      tipo,
+      precioUnitario: precio,
+      total,
+      cantidad
+    };
+
+    db.ref('ventas').push(venta, (error) => {
+      if (error) {
+        alert('Error al guardar la venta.');
+      } else {
+        alert('Venta registrada correctamente.');
+        location.reload(); // recarga la página para resetear formulario
+      }
+    });
+  });
+}
+
+
+    else if (tipo === 'consulta') {
     cont.innerHTML = `
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
       <label class="block mb-4">
@@ -243,43 +342,54 @@
   }
 };
 
-  function cargarConsulta() {
-    const tipo = document.getElementById('tipo-consulta').value;
-    const tablaCont = document.getElementById('tabla-consultas');
+ function cargarConsulta() {
+  const tipo = document.getElementById('tipo-consulta').value;
+  const tablaCont = document.getElementById('tabla-consultas');
 
-    db.ref(tipo).limitToLast(10).once('value', snapshot => {
-      if (!snapshot.exists()) {
-        tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
-        return;
-      }
+  db.ref(tipo).once('value', snapshot => {
+    if (!snapshot.exists()) {
+      tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
+      return;
+    }
 
-      const datos = snapshot.val();
-      const entradas = Object.entries(datos);
-      const claves = Object.keys(entradas[0][1] || {});
+    const datos = snapshot.val();
+    const entradas = Object.entries(datos);
 
-      let html = `<table class="min-w-full bg-white border border-gray-300">
-        <thead>
-          <tr>
-            ${claves.map(c => `<th class="px-4 py-2 border">${c}</th>`).join('')}
-            <th class="px-4 py-2 border">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${entradas.map(([key, item]) => `
-            <tr>
-              ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
-              <td class="px-4 py-2 border text-center">
-                <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
-                <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>`;
-
-      tablaCont.innerHTML = html;
+    // Ordenar entradas por codigoSKU (alfabéticamente)
+    entradas.sort((a, b) => {
+      const codigoA = (a[1].codigoSKU || '').toString().toLowerCase();
+      const codigoB = (b[1].codigoSKU || '').toString().toLowerCase();
+      if (codigoA < codigoB) return -1;
+      if (codigoA > codigoB) return 1;
+      return 0;
     });
-  }
+
+    const claves = Object.keys(entradas[0][1] || {});
+
+    let html = `<table class="min-w-full bg-white border border-gray-300">
+      <thead>
+        <tr>
+          ${claves.map(c => `<th class="px-4 py-2 border">${c}</th>`).join('')}
+          <th class="px-4 py-2 border">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entradas.map(([key, item]) => `
+          <tr>
+            ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
+            <td class="px-4 py-2 border text-center">
+              <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
+              <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+
+    tablaCont.innerHTML = html;
+  });
+}
+
 
   function eliminarItem(tipo, id) {
     if (confirm('¿Estás seguro de eliminar este registro?')) {
@@ -291,8 +401,125 @@
   }
 
   function editarItem(tipo, id) {
-    alert('Función de edición aún no implementada para simplificar.');
-  }
+  db.ref(`${tipo}/${id}`).once('value', snapshot => {
+    if (!snapshot.exists()) {
+      alert('Registro no encontrado');
+      return;
+    }
+
+    const datos = snapshot.val();
+
+    let modal = document.getElementById('modal-editar');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-editar';
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      modal.style.display = 'flex';
+      modal.style.justifyContent = 'center';
+      modal.style.alignItems = 'center';
+      modal.style.zIndex = '9999';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div style="
+        background:#fff; 
+        padding:20px; 
+        border-radius:8px; 
+        max-width:400px; 
+        width:90%; 
+        max-height: 90vh; 
+        overflow-y: auto;
+        box-sizing: border-box;
+        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      ">
+        <h2 style="margin-bottom:1rem;">Editar Producto</h2>
+        <form id="form-editar-producto">
+          <label>
+            Código SKU:<br/>
+            <input type="text" name="codigoSKU" value="${datos.codigoSKU || ''}" required style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Tipo:<br/>
+            <input type="text" name="tipo" value="${datos.tipo || ''}" required style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Precio Compra:<br/>
+            <input type="number" name="precioCompra" value="${datos.precioCompra || 0}" step="0.01" min="0" required style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Precio Venta:<br/>
+            <input type="number" name="precioVenta" value="${datos.precioVenta || 0}" step="0.01" min="0" required style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Precio Promocional:<br/>
+            <input type="number" name="precioPromocional" value="${datos.precioPromocional || 0}" step="0.01" min="0" style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Cantidad mínima para promoción:<br/>
+            <input type="number" name="cantidadPromo" value="${datos.cantidadPromo || 0}" min="0" style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Fecha ingreso:<br/>
+            <input type="date" name="fechaIngreso" value="${datos.fechaIngreso || ''}" required style="width:100%; padding:0.5rem; margin-bottom:1rem;"/>
+          </label>
+          <label>
+            Observaciones:<br/>
+            <textarea name="observaciones" style="width:100%; padding:0.5rem; margin-bottom:1rem;" rows="3">${datos.observaciones || ''}</textarea>
+          </label>
+          <div style="text-align:right;">
+            <button type="button" id="btn-cancelar" style="margin-right:10px; padding:0.5rem 1rem;">Cancelar</button>
+            <button type="submit" style="
+              background:#4CAF50; 
+              color:#fff; 
+              padding:0.5rem 1rem; 
+              border:none; 
+              border-radius:4px;
+              cursor:pointer;
+            ">Guardar</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+
+    document.getElementById('btn-cancelar').onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    document.getElementById('form-editar-producto').onsubmit = (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+
+      const productoEditado = {
+        codigoSKU: formData.get('codigoSKU').trim(),
+        tipo: formData.get('tipo').trim(),
+        precioCompra: parseFloat(formData.get('precioCompra')) || 0,
+        precioVenta: parseFloat(formData.get('precioVenta')) || 0,
+        precioPromocional: parseFloat(formData.get('precioPromocional')) || 0,
+        cantidadPromo: parseInt(formData.get('cantidadPromo')) || 0,
+        fechaIngreso: formData.get('fechaIngreso'),
+        observaciones: formData.get('observaciones').trim()
+      };
+
+      db.ref(`${tipo}/${id}`).update(productoEditado)
+        .then(() => {
+          alert('Producto actualizado correctamente');
+          modal.style.display = 'none';
+          cargarConsulta(); // recarga tabla con datos actualizados
+        })
+        .catch(e => alert('Error al actualizar: ' + e.message));
+    };
+  });
+}
+
+
 
   // Manejo global de formularios ingreso y venta
   document.addEventListener('submit', e => {
@@ -300,25 +527,31 @@
       e.preventDefault();
       const form = e.target;
       const inputs = form.querySelectorAll('input, select, textarea');
-      let producto = {
-        codigoSKU: inputs[0].value.trim().toLowerCase(),
-        tipo: inputs[1].value.trim(),
-        material: inputs[2].value.trim(),
-        color: inputs[3].value.trim(),
-        marca: inputs[4].value.trim(),
-        precioCompra: parseDecimal(inputs[5].value),
-        precioVenta: parseDecimal(inputs[6].value),
-        fechaIngreso: inputs[7].value,
-        estado: inputs[8].value,
-        observaciones: inputs[9].value.trim()
-      };
 
-      if (!producto.codigoSKU) {
+      // --- Normalizo el SKU a minúsculas y quito espacios en ingreso
+      let skuIngreso = inputs[0].value.trim().toLowerCase();
+
+      // No valido regex para permitir cualquier tipo de código, solo que no esté vacío
+      if (!skuIngreso) {
         alert('Debe ingresar un Código SKU válido.');
         return;
       }
 
-      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(producto.codigoSKU).once('value', snapshot => {
+      let producto = {
+        codigoSKU: skuIngreso,
+        tipo: inputs[1].value.trim(),
+        
+        precioCompra: parseDecimal(inputs[2].value),
+        precioVenta: parseDecimal(inputs[3].value),
+        fechaIngreso: inputs[4].value,
+        observaciones: inputs[5].value.trim()
+      };
+
+     // Compruebo si ya existe el producto con ese SKU (igual en minúsculas)
+    db.ref('marroquineria')
+      .orderByChild('codigoSKU')
+      .equalTo(skuIngreso)
+      .once('value', snapshot => {
         if (snapshot.exists()) {
           alert('Ya existe un producto con ese Código SKU.');
         } else {
@@ -330,6 +563,8 @@
             .catch(e => alert('Error al guardar: ' + e.message));
         }
       });
+
+
     }
 
     if (e.target.id === 'form-venta') {
@@ -337,22 +572,24 @@
       const form = e.target;
       const inputs = form.querySelectorAll('input, select');
 
+      let codigoSKUVenta = inputs[3].value.trim();
+
+      if (!codigoSKUVenta) {
+        alert('Debe ingresar un Código SKU válido.');
+        return;
+      }
+
       const venta = {
         fecha: inputs[0].value,
         clienteNombre: inputs[1].value.trim(),
         clienteDNI: inputs[2].value.trim(),
-        codigoSKU: inputs[3].value.trim().toUpperCase(),
+        codigoSKU: codigoSKUVenta,
         bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
         formaPago: document.getElementById('forma-pago').value,
         moneda: document.getElementById('moneda').value,
         precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
       };
-
-      if (!venta.clienteNombre || !venta.clienteDNI || !venta.codigoSKU || !venta.fecha) {
-        alert('Completar todos los datos obligatorios.');
-        return;
-      }
-
+     
       db.ref('ventas_marroquineria').push(venta)
         .then(() => {
           alert('Venta registrada correctamente');
