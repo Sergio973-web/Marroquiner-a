@@ -126,7 +126,7 @@
     </form>
   `;
 } 
-else if (tipo === 'venta') {
+} else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
@@ -150,22 +150,6 @@ else if (tipo === 'venta') {
 
       <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
 
-      <label>Forma de pago:
-        <select class="border p-2 rounded w-full" id="forma-pago">
-          <option value="">Seleccionar</option>
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="tarjeta">Tarjeta de crédito</option>
-        </select>
-      </label>
-
-      <label>Moneda:
-        <select class="border p-2 rounded w-full" id="moneda">
-          <option value="ARS">Pesos</option>
-          <option value="USD">Dólares</option>
-        </select>
-      </label>
-
       <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
     </form>
   `;
@@ -185,45 +169,41 @@ else if (tipo === 'venta') {
   skuInput.addEventListener('change', buscarYMostrarProducto);
 
   function buscarYMostrarProducto() {
-  let texto = skuInput.value.trim().toLowerCase();
+    let texto = skuInput.value.trim().toLowerCase();
 
-  if (texto.length > 4) {
-    texto = texto.slice(-4);
-    skuInput.value = texto;
-  }
+    if (texto.length > 4) {
+      texto = texto.slice(-4);
+      skuInput.value = texto;
+    }
 
-  if (!texto) {
-    sugerenciasCont.style.display = 'none';
-    datosProducto.classList.add('hidden');
-    productoActual = null;
-    precioSpan.textContent = '0.00';
-    finalSpan.textContent = '0.00';
-    return;
-  }
+    if (!texto) {
+      sugerenciasCont.style.display = 'none';
+      datosProducto.classList.add('hidden');
+      productoActual = null;
+      precioSpan.textContent = '0.00';
+      finalSpan.textContent = '0.00';
+      return;
+    }
 
-  // 🔍 Buscar producto con SKU exacto
-  let producto = productos[texto];
+    let producto = productos[texto];
 
-  // 🔁 Si no lo encuentra exacto, buscar entre los que terminen en esos 4 dígitos
-  if (!producto) {
-    for (const sku in productos) {
-      if (sku.slice(-2).toLowerCase() === texto) {
-        producto = productos[sku];
-        break;
+    if (!producto) {
+      for (const sku in productos) {
+        if (sku.slice(-2).toLowerCase() === texto) {
+          producto = productos[sku];
+          break;
+        }
       }
     }
-  }
 
-  if (producto) {
-    mostrarDatosProducto(producto);
-  } else {
-    datosProducto.classList.add('hidden');
-    productoActual = null;
-    precioSpan.textContent = '0.00';
-    finalSpan.textContent = '0.00';
-  }
-}
-
+    if (producto) {
+      mostrarDatosProducto(producto);
+    } else {
+      datosProducto.classList.add('hidden');
+      productoActual = null;
+      precioSpan.textContent = '0.00';
+      finalSpan.textContent = '0.00';
+    }
 
     const endText = texto + "\uf8ff";
 
@@ -237,6 +217,7 @@ else if (tipo === 'venta') {
           sugerenciasCont.style.display = 'none';
           return;
         }
+
         const productos = snapshot.val();
         const arrProd = Object.values(productos);
 
@@ -302,8 +283,6 @@ else if (tipo === 'venta') {
     const dni = document.getElementById('dni').value.trim();
     const sku = skuInput.value.trim();
     const tipo = tipoSpan.textContent.trim();
-    const formaPago = document.getElementById('forma-pago').value;
-    const moneda = document.getElementById('moneda').value;
     const precio = parseFloat(precioSpan.textContent) || 0;
     const total = parseFloat(finalSpan.textContent) || 0;
     const cantidad = parseInt(cantidadInput.value) || 1;
@@ -321,8 +300,6 @@ else if (tipo === 'venta') {
       tipo,
       precioUnitario: precio,
       total,
-      formaPago,
-      moneda,
       cantidad
     };
 
