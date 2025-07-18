@@ -54,22 +54,20 @@
   }
 
   let html5QrcodeScanner;
-let inputSkuActual = null;
+  let inputSkuActual = null;
 
-function abrirScanner(inputSkuId) {
-  inputSkuActual = inputSkuId;
-  document.getElementById('scanner-container').classList.remove('hidden');
+  function abrirScanner(inputSkuId) {
+    inputSkuActual = inputSkuId;
+    document.getElementById('scanner-container').classList.remove('hidden');
 
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.clear()
-      .then(() => iniciarEscaneo())
-      .catch(() => iniciarEscaneo());
-  } else {
-    iniciarEscaneo();
+    if (html5QrcodeScanner) {
+      html5QrcodeScanner.clear().then(() => iniciarEscaneo()).catch(() => iniciarEscaneo());
+    } else {
+      iniciarEscaneo();
+    }
   }
-}
 
-function iniciarEscaneo() {
+  function iniciarEscaneo() {
   html5QrcodeScanner = new Html5Qrcode("reader");
   const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
@@ -77,42 +75,33 @@ function iniciarEscaneo() {
     { facingMode: "environment" },
     config,
     (decodedText) => {
-      html5QrcodeScanner.stop()
-        .then(() => html5QrcodeScanner.clear())
-        .catch(() => {});
+      html5QrcodeScanner.stop();
       document.getElementById('scanner-container').classList.add('hidden');
 
-      // Toma los últimos 4 dígitos del código escaneado
-      const codigoLimpio = decodedText.slice(-4);
+      const codigoLimpio = decodedText.slice(-4); // <-- ¡Usar los últimos 4 dígitos!
 
       if (inputSkuActual) {
         const input = document.getElementById(inputSkuActual);
         if (input) {
           input.value = codigoLimpio;
-          // Dispara el evento blur para activar la búsqueda automática
           input.dispatchEvent(new Event('blur'));
         }
       }
     },
-    (errorMessage) => {
-      // Puedes mostrar o ignorar mensajes de error mientras escanea
-      // console.warn(`Escaneo fallido: ${errorMessage}`);
-    }
+    (_) => {}
   ).catch(err => {
     alert('Error iniciando la cámara: ' + err);
     document.getElementById('scanner-container').classList.add('hidden');
   });
 }
 
-function cerrarScanner() {
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop()
-      .then(() => html5QrcodeScanner.clear())
-      .catch(() => {});
-  }
-  document.getElementById('scanner-container').classList.add('hidden');
-}
 
+  function cerrarScanner() {
+    if(html5QrcodeScanner){
+      html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
+    }
+    document.getElementById('scanner-container').classList.add('hidden');
+  }
 
   window.mostrarFormulario = function(tipo) {
   const cont = document.getElementById('formulario');
@@ -178,15 +167,13 @@ function cerrarScanner() {
 
   skuInput.addEventListener('input', buscarYMostrarProducto);
   skuInput.addEventListener('change', buscarYMostrarProducto);
-  let timerBusqueda = null;
-
-  skuInput.addEventListener('input', () => {
-    clearTimeout(timerBusqueda);
-    timerBusqueda = setTimeout(() => {
-      buscarProductoExacto();
-    }, 500); // espera 500ms sin cambios y busca
+  // 👉 Nuevo evento para manejar el Enter del escáner o teclado
+  skuInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Evita que se envíe el formulario
+      buscarProductoExacto(); // Busca el producto con coincidencia exacta
+    }
   });
-
 
   function buscarProductoExacto() {
   let texto = skuInput.value.trim();
@@ -216,6 +203,7 @@ function cerrarScanner() {
     });
 }
 
+
   function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
 
@@ -223,8 +211,7 @@ function cerrarScanner() {
     texto = texto.slice(-4);
     skuInput.value = texto;
   }
-
-  
+    
   if (!texto) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
