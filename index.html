@@ -348,12 +348,11 @@ function calcularPrecioFinal() {
   }
 };
 
-  function cargarConsulta() {
+ function cargarConsulta() {
   const tipo = document.getElementById('tipo-consulta').value;
   const tablaCont = document.getElementById('tabla-consultas');
 
   db.ref(tipo).once('value', snapshot => {
-
     if (!snapshot.exists()) {
       tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
       return;
@@ -362,10 +361,10 @@ function calcularPrecioFinal() {
     const datos = snapshot.val();
     const entradas = Object.entries(datos);
 
-    // Ordenar las entradas por el valor de 'codigo' (alfabéticamente)
+    // Ordenar entradas por codigoSKU (alfabéticamente)
     entradas.sort((a, b) => {
-      const codigoA = (a[1].codigo || '').toString().toLowerCase();
-      const codigoB = (b[1].codigo || '').toString().toLowerCase();
+      const codigoA = (a[1].codigoSKU || '').toString().toLowerCase();
+      const codigoB = (b[1].codigoSKU || '').toString().toLowerCase();
       if (codigoA < codigoB) return -1;
       if (codigoA > codigoB) return 1;
       return 0;
@@ -396,6 +395,7 @@ function calcularPrecioFinal() {
     tablaCont.innerHTML = html;
   });
 }
+
 
   function eliminarItem(tipo, id) {
     if (confirm('¿Estás seguro de eliminar este registro?')) {
