@@ -523,18 +523,19 @@
       };
 
       // Compruebo si ya existe el producto con ese SKU (igual en minúsculas)
-      db.ref('marroquineria').orderByChild('codigoSKU').equalTo(skuIngreso).once('value', snapshot => {
-        if (snapshot.exists()) {
-          alert('Ya existe un producto con ese Código SKU.');
-        } else {
-          db.ref('marroquineria').push(producto)
-            .then(() => {
-              alert('Producto guardado correctamente');
-              form.reset();
-            })
-            .catch(e => alert('Error al guardar: ' + e.message));
-        }
-      });
+      db.ref('arbolGenealogico/marroquineria').orderByChild('codigoSKU').equalTo(skuIngreso).once('value', snapshot => {
+  if (snapshot.exists()) {
+    alert('Ya existe un producto con ese Código SKU.');
+  } else {
+    db.ref('arbolGenealogico/marroquineria').push(producto)
+      .then(() => {
+        alert('Producto guardado correctamente');
+        form.reset();
+      })
+      .catch(e => alert('Error al guardar: ' + e.message));
+  }
+});
+
     }
 
     if (e.target.id === 'form-venta') {
