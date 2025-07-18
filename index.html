@@ -185,15 +185,22 @@ else if (tipo === 'venta') {
   skuInput.addEventListener('change', buscarYMostrarProducto);
 
   function buscarYMostrarProducto() {
-    const texto = skuInput.value.trim().toLowerCase();
-    if (!texto) {
-      sugerenciasCont.style.display = 'none';
-      datosProducto.classList.add('hidden');
-      productoActual = null;
-      precioSpan.textContent = '0.00';
-      finalSpan.textContent = '0.00';
-      return;
-    }
+  let texto = skuInput.value.trim().toLowerCase();
+
+  // 🔧 Si el código es más largo que 5 caracteres, recorta los últimos 5
+  if (texto.length > 5) {
+    texto = texto.slice(-5);
+    skuInput.value = texto; // actualizar input también
+  }
+
+  if (!texto) {
+    sugerenciasCont.style.display = 'none';
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    finalSpan.textContent = '0.00';
+    return;
+  }
 
     const endText = texto + "\uf8ff";
 
