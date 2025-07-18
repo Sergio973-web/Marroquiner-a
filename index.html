@@ -193,7 +193,7 @@
     .orderByChild('codigoSKU')
     .startAt(texto)
     .endAt(endText)
-    .limitToFirst(10)
+    .limitToFirst(30)
     .once('value', snapshot => {
       if (!snapshot.exists()) {
         sugerenciasCont.style.display = 'none';
