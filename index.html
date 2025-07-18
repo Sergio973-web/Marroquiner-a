@@ -173,6 +173,8 @@ skuInput.addEventListener('input', () => {
   buscarYMostrarProducto();
 });
 
+let ultimoTextoBuscado = '';
+
 function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
 
@@ -190,6 +192,9 @@ function buscarYMostrarProducto() {
     return;
   }
 
+  // 🔁 Acá actualizás antes de hacer la consulta
+  ultimoTextoBuscado = texto;
+
   const endText = texto + "\uf8ff";
 
   db.ref('marroquineria')
@@ -198,7 +203,7 @@ function buscarYMostrarProducto() {
     .endAt(endText)
     .limitToFirst(30)
     .once('value', snapshot => {
-      // Evitar resultados de búsquedas antiguas si se escribió rápido
+      // Solo usamos los resultados si coinciden con el último texto buscado
       if (texto !== ultimoTextoBuscado) return;
 
       if (!snapshot.exists()) {
@@ -213,25 +218,23 @@ function buscarYMostrarProducto() {
       const productosDB = snapshot.val();
       const arrProd = Object.values(productosDB);
 
-      // Mostrar sugerencias
       sugerenciasCont.innerHTML = arrProd.map(prod =>
-        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200"
-            data-sku="${prod.codigoSKU}"
-            data-tipo="${prod.tipo}"
-            data-precio="${prod.precioVenta}"
-            data-promocion="${prod.precioPromocional || 0}"
-            data-cantidad-promo="${prod.cantidadPromo || 0}">
-            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+          data-sku="${prod.codigoSKU}" 
+          data-tipo="${prod.tipo}" 
+          data-precio="${prod.precioVenta}" 
+          data-promocion="${prod.precioPromocional || 0}" 
+          data-cantidad-promo="${prod.cantidadPromo || 0}">
+          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
         </div>`
       ).join('');
       sugerenciasCont.style.display = 'block';
 
-      // Agregar eventos de selección a cada sugerencia
+      // Eventos click
       Array.from(sugerenciasCont.children).forEach(div => {
         div.addEventListener('click', () => {
           skuInput.value = div.dataset.sku;
           tipoSpan.textContent = div.dataset.tipo || '';
-          precioSpan.textContent = parseFloat(div.dataset.precio).toFixed(2);
           productoActual = {
             sku: div.dataset.sku,
             tipo: div.dataset.tipo,
@@ -247,6 +250,7 @@ function buscarYMostrarProducto() {
       });
     });
 }
+
 
 function calcularPrecioFinal() {
   if (!productoActual) return;
