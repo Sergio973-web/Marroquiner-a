@@ -332,7 +332,7 @@
     const tipo = document.getElementById('tipo-consulta').value;
     const tablaCont = document.getElementById('tabla-consultas');
 
-    db.ref(tipo).limitToLast(10).once('value', snapshot => {
+    db.ref(tipo).once('value', snapshot => {
 
       if (!snapshot.exists()) {
         tablaCont.innerHTML = `<p class="text-gray-600">No hay datos para mostrar.</p>`;
