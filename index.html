@@ -165,7 +165,7 @@ const cantidadInput = document.getElementById('venta-cantidad');
 const datosProducto = document.getElementById('datos-producto');
 
 let productoActual = null;
-let ultimoTextoBuscado = '';
+
 
 // Evento para buscar mientras escribe
 skuInput.addEventListener('input', () => {
@@ -187,8 +187,7 @@ function buscarYMostrarProducto() {
     return;
   }
 
-  // 🔁 Acá actualizás antes de hacer la consulta
-  ultimoTextoBuscado = texto;
+  
 
   const endText = texto + "\uf8ff";
 
@@ -198,9 +197,7 @@ function buscarYMostrarProducto() {
     .endAt(endText)
     .limitToFirst(30)
     .once('value', snapshot => {
-      // Solo usamos los resultados si coinciden con el último texto buscado
-      if (texto !== ultimoTextoBuscado) return;
-
+      
       if (!snapshot.exists()) {
         sugerenciasCont.style.display = 'none';
         datosProducto.classList.add('hidden');
