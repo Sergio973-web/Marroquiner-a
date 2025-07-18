@@ -187,10 +187,9 @@ else if (tipo === 'venta') {
   function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
 
-  // 🔧 Si el código es más largo que 5 caracteres, recorta los últimos 5
   if (texto.length > 4) {
     texto = texto.slice(-4);
-    skuInput.value = texto; // actualizar input también
+    skuInput.value = texto;
   }
 
   if (!texto) {
@@ -201,6 +200,30 @@ else if (tipo === 'venta') {
     finalSpan.textContent = '0.00';
     return;
   }
+
+  // 🔍 Buscar producto con SKU exacto
+  let producto = productos[texto];
+
+  // 🔁 Si no lo encuentra exacto, buscar entre los que terminen en esos 4 dígitos
+  if (!producto) {
+    for (const sku in productos) {
+      if (sku.slice(-2).toLowerCase() === texto) {
+        producto = productos[sku];
+        break;
+      }
+    }
+  }
+
+  if (producto) {
+    mostrarDatosProducto(producto);
+  } else {
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    finalSpan.textContent = '0.00';
+  }
+}
+
 
     const endText = texto + "\uf8ff";
 
