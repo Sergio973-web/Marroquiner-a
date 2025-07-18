@@ -178,11 +178,6 @@ let ultimoTextoBuscado = '';
 function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
 
-  if (texto.length > 4) {
-    texto = texto.slice(-4);
-    skuInput.value = texto;
-  }
-
   if (!texto || texto.length < 1) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
