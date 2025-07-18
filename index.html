@@ -199,6 +199,9 @@
     skuInput.value = texto;
   }
 
+  if (texto.length === 4) {
+    buscarProductoExacto(texto); // 👈 Llama aquí si ya hay 4 dígitos
+  }
   if (!texto) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
