@@ -389,7 +389,6 @@
   }
 
   function editarItem(tipo, id) {
-  // Obtener datos del registro a editar
   db.ref(`${tipo}/${id}`).once('value', snapshot => {
     if (!snapshot.exists()) {
       alert('Registro no encontrado');
@@ -398,7 +397,6 @@
 
     const datos = snapshot.val();
 
-    // Crear modal si no existe
     let modal = document.getElementById('modal-editar');
     if (!modal) {
       modal = document.createElement('div');
@@ -417,7 +415,17 @@
     }
 
     modal.innerHTML = `
-      <div style="background:#fff; padding:20px; border-radius:8px; max-width:400px; width:90%;">
+      <div style="
+        background:#fff; 
+        padding:20px; 
+        border-radius:8px; 
+        max-width:400px; 
+        width:90%; 
+        max-height: 90vh; 
+        overflow-y: auto;
+        box-sizing: border-box;
+        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      ">
         <h2 style="margin-bottom:1rem;">Editar Producto</h2>
         <form id="form-editar-producto">
           <label>
@@ -450,25 +458,29 @@
           </label>
           <label>
             Observaciones:<br/>
-            <textarea name="observaciones" style="width:100%; padding:0.5rem; margin-bottom:1rem;">${datos.observaciones || ''}</textarea>
+            <textarea name="observaciones" style="width:100%; padding:0.5rem; margin-bottom:1rem;" rows="3">${datos.observaciones || ''}</textarea>
           </label>
           <div style="text-align:right;">
-            <button type="button" id="btn-cancelar" style="margin-right:10px;">Cancelar</button>
-            <button type="submit" style="background:#4CAF50; color:#fff; padding:0.5rem 1rem; border:none; border-radius:4px;">Guardar</button>
+            <button type="button" id="btn-cancelar" style="margin-right:10px; padding:0.5rem 1rem;">Cancelar</button>
+            <button type="submit" style="
+              background:#4CAF50; 
+              color:#fff; 
+              padding:0.5rem 1rem; 
+              border:none; 
+              border-radius:4px;
+              cursor:pointer;
+            ">Guardar</button>
           </div>
         </form>
       </div>
     `;
 
-    // Mostrar modal
     modal.style.display = 'flex';
 
-    // Cancelar edición
     document.getElementById('btn-cancelar').onclick = () => {
       modal.style.display = 'none';
     };
 
-    // Manejar submit del formulario
     document.getElementById('form-editar-producto').onsubmit = (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
@@ -484,17 +496,17 @@
         observaciones: formData.get('observaciones').trim()
       };
 
-      // Actualizar en Firebase
       db.ref(`${tipo}/${id}`).update(productoEditado)
         .then(() => {
           alert('Producto actualizado correctamente');
           modal.style.display = 'none';
-          cargarConsulta(); // recarga la tabla con datos actualizados
+          cargarConsulta(); // recarga tabla con datos actualizados
         })
         .catch(e => alert('Error al actualizar: ' + e.message));
     };
   });
 }
+
 
 
   // Manejo global de formularios ingreso y venta
