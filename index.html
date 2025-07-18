@@ -167,6 +167,29 @@
 
   skuInput.addEventListener('input', buscarYMostrarProducto);
   skuInput.addEventListener('change', buscarYMostrarProducto);
+    // 👉 Nuevo evento para manejar el Enter del escáner o teclado
+  skuInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Evita que se envíe el formulario
+      buscarProductoExacto(); // Busca el producto con coincidencia exacta
+    }
+  });
+
+  function buscarProductoExacto() {
+    let texto = skuInput.value.trim().toLowerCase();
+
+    const producto = Object.values(productos).find(p => 
+      p.codigoSKU && p.codigoSKU.toLowerCase() === texto
+    );
+
+    if (producto) {
+      mostrarProducto(producto); // Mostrá los datos como ya hacías antes
+    } else {
+      sugerenciasCont.innerHTML = '';
+      datosProducto.style.display = 'none';
+      console.log("No se encontró el producto exacto con el SKU:", texto);
+    }
+  }
 
   function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
