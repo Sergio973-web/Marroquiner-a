@@ -138,15 +138,11 @@ else if (tipo === 'venta') {
 
       <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
         <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
-        <p><strong>Precio base:</strong> $<span id="venta-precio"></span></p>
+        <p><strong>Precio aplicado:</strong> $<span id="venta-precio"></span></p>
         <label>Cantidad:
           <input id="venta-cantidad" type="number" value="1" min="1" class="border p-2 rounded w-full" />
         </label>
       </div>
-
-      <label>Bonificación (%):
-        <input class="border p-2 rounded w-full" type="number" id="bonificacion" value="0" min="0" max="100" />
-      </label>
 
       <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
 
@@ -173,22 +169,23 @@ else if (tipo === 'venta') {
   const form = document.getElementById('form-venta');
   const skuInput = document.getElementById('sku-buscar');
   const sugerenciasCont = document.getElementById('sugerencias-sku');
-  const bonifInput = document.getElementById('bonificacion');
   const precioSpan = document.getElementById('venta-precio');
   const tipoSpan = document.getElementById('venta-tipo');
   const finalSpan = document.getElementById('precio-final');
   const cantidadInput = document.getElementById('venta-cantidad');
   const datosProducto = document.getElementById('datos-producto');
 
-  let precioBase = 0;
   let productoActual = null;
 
-  skuInput.addEventListener('input', () => {
+  skuInput.addEventListener('input', buscarYMostrarProducto);
+  skuInput.addEventListener('change', buscarYMostrarProducto);
+
+  function buscarYMostrarProducto() {
     const texto = skuInput.value.trim().toLowerCase();
     if (!texto) {
       sugerenciasCont.style.display = 'none';
       datosProducto.classList.add('hidden');
-      precioBase = 0;
+      productoActual = null;
       precioSpan.textContent = '0.00';
       finalSpan.textContent = '0.00';
       return;
@@ -210,7 +207,12 @@ else if (tipo === 'venta') {
         const arrProd = Object.values(productos);
 
         sugerenciasCont.innerHTML = arrProd.map(prod =>
-          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" data-sku="${prod.codigoSKU}" data-tipo="${prod.tipo}" data-precio="${prod.precioVenta}" data-promocion="${prod.precioPromocional || 0}" data-cantidad-promo="${prod.cantidadPromo || 0}">
+          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+            data-sku="${prod.codigoSKU}" 
+            data-tipo="${prod.tipo}" 
+            data-precio="${prod.precioVenta}" 
+            data-promocion="${prod.precioPromocional || 0}" 
+            data-cantidad-promo="${prod.cantidadPromo || 0}">
             <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
           </div>`
         ).join('');
@@ -220,8 +222,9 @@ else if (tipo === 'venta') {
           div.addEventListener('click', () => {
             skuInput.value = div.dataset.sku;
             tipoSpan.textContent = div.dataset.tipo || '';
-            precioBase = parseFloat(div.dataset.precio) || 0;
             productoActual = {
+              sku: div.dataset.sku,
+              tipo: div.dataset.tipo,
               precio: parseFloat(div.dataset.precio) || 0,
               promocion: parseFloat(div.dataset.promocion) || 0,
               cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
@@ -229,12 +232,11 @@ else if (tipo === 'venta') {
             calcularPrecioFinal();
             datosProducto.classList.remove('hidden');
             sugerenciasCont.style.display = 'none';
-            bonifInput.value = 0;
             skuInput.focus();
           });
         });
       });
-  });
+  }
 
   skuInput.addEventListener('blur', () => {
     setTimeout(() => {
@@ -242,24 +244,20 @@ else if (tipo === 'venta') {
     }, 200);
   });
 
-  bonifInput.addEventListener('input', calcularPrecioFinal);
   cantidadInput.addEventListener('input', calcularPrecioFinal);
 
   function calcularPrecioFinal() {
     if (!productoActual) return;
-    const bonif = parseFloat(bonifInput.value) || 0;
-    const cantidad = parseInt(cantidadInput.value) || 1;
 
+    const cantidad = parseInt(cantidadInput.value) || 1;
     let precioAplicado = productoActual.precio;
-    if (productoActual.promocion && cantidad >= productoActual.cantidadPromo) {
+
+    if (productoActual.promocion > 0 && cantidad >= productoActual.cantidadPromo) {
       precioAplicado = productoActual.promocion;
     }
 
-    precioBase = precioAplicado;
-    precioSpan.textContent = precioBase.toFixed(2);
-
-    const final = precioBase - (precioBase * bonif / 100);
-    finalSpan.textContent = final.toFixed(2);
+    precioSpan.textContent = precioAplicado.toFixed(2);
+    finalSpan.textContent = (precioAplicado * cantidad).toFixed(2);
   }
 
   form.addEventListener('submit', (e) => {
@@ -270,7 +268,6 @@ else if (tipo === 'venta') {
     const dni = document.getElementById('dni').value.trim();
     const sku = skuInput.value.trim();
     const tipo = tipoSpan.textContent.trim();
-    const bonif = parseFloat(bonifInput.value) || 0;
     const formaPago = document.getElementById('forma-pago').value;
     const moneda = document.getElementById('moneda').value;
     const precio = parseFloat(precioSpan.textContent) || 0;
@@ -288,8 +285,7 @@ else if (tipo === 'venta') {
       dni,
       sku,
       tipo,
-      precio,
-      bonificacion: bonif,
+      precioUnitario: precio,
       total,
       formaPago,
       moneda,
