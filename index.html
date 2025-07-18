@@ -169,89 +169,95 @@
   skuInput.addEventListener('change', buscarYMostrarProducto);
 
   function buscarYMostrarProducto() {
-    let texto = skuInput.value.trim().toLowerCase();
+  let texto = skuInput.value.trim().toLowerCase();
 
-    if (texto.length > 4) {
-      texto = texto.slice(-4);
-      skuInput.value = texto;
-    }
+  // No acortes a 4 si ya es menor
+  if (texto.length > 4) {
+    texto = texto.slice(-4); // nos quedamos con los últimos 4 caracteres
+    skuInput.value = texto;  // actualizamos el input visualmente
+  }
 
-    if (!texto) {
-      sugerenciasCont.style.display = 'none';
-      datosProducto.classList.add('hidden');
-      productoActual = null;
-      precioSpan.textContent = '0.00';
-      finalSpan.textContent = '0.00';
-      return;
-    }
+  if (!texto) {
+    sugerenciasCont.style.display = 'none';
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    finalSpan.textContent = '0.00';
+    return;
+  }
 
-    let producto = productos[texto];
+  // Búsqueda local
+  let producto = productos[texto];
 
-    if (!producto) {
-      for (const sku in productos) {
-        if (sku.slice(-2).toLowerCase() === texto) {
-          producto = productos[sku];
-          break;
-        }
+  if (!producto) {
+    // Buscar por los últimos 2 dígitos
+    for (const sku in productos) {
+      if (sku.slice(-2).toLowerCase() === texto) {
+        producto = productos[sku];
+        break;
       }
     }
+  }
 
-    if (producto) {
-      mostrarDatosProducto(producto);
-    } else {
-      datosProducto.classList.add('hidden');
-      productoActual = null;
-      precioSpan.textContent = '0.00';
-      finalSpan.textContent = '0.00';
-    }
+  if (producto) {
+    mostrarDatosProducto(producto);
+  } else {
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    finalSpan.textContent = '0.00';
+  }
 
-    const endText = texto + "\uf8ff";
+  // Búsqueda en Firebase
+  const endText = texto + "\uf8ff";
 
-    db.ref('marroquineria')
-      .orderByChild('codigoSKU')
-      .startAt(texto)
-      .endAt(endText)
-      .limitToFirst(10)
-      .once('value', snapshot => {
-        if (!snapshot.exists()) {
+  db.ref('marroquineria')
+    .orderByChild('codigoSKU')
+    .startAt(texto)
+    .endAt(endText)
+    .limitToFirst(10)
+    .once('value', snapshot => {
+      if (!snapshot.exists()) {
+        sugerenciasCont.style.display = 'none';
+        return;
+      }
+
+      const productosDB = snapshot.val();
+      const arrProd = Object.values(productosDB);
+
+      sugerenciasCont.innerHTML = arrProd.map(prod =>
+        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+          data-sku="${prod.codigoSKU}" 
+          data-tipo="${prod.tipo}" 
+          data-precio="${prod.precioVenta}" 
+          data-promocion="${prod.precioPromocional || 0}" 
+          data-cantidad-promo="${prod.cantidadPromo || 0}">
+          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+        </div>`
+      ).join('');
+      sugerenciasCont.style.display = 'block';
+
+      // Listener a cada sugerencia
+      Array.from(sugerenciasCont.children).forEach(div => {
+        div.addEventListener('click', () => {
+          skuInput.value = div.dataset.sku;
+          tipoSpan.textContent = div.dataset.tipo || '';
+          productoActual = {
+            sku: div.dataset.sku,
+            tipo: div.dataset.tipo,
+            precio: parseFloat(div.dataset.precio) || 0,
+            promocion: parseFloat(div.dataset.promocion) || 0,
+            cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
+          };
+          calcularPrecioFinal();
+          datosProducto.classList.remove('hidden');
           sugerenciasCont.style.display = 'none';
-          return;
-        }
-
-        const productos = snapshot.val();
-        const arrProd = Object.values(productos);
-
-        sugerenciasCont.innerHTML = arrProd.map(prod =>
-          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
-            data-sku="${prod.codigoSKU}" 
-            data-tipo="${prod.tipo}" 
-            data-precio="${prod.precioVenta}" 
-            data-promocion="${prod.precioPromocional || 0}" 
-            data-cantidad-promo="${prod.cantidadPromo || 0}">
-            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
-          </div>`
-        ).join('');
-        sugerenciasCont.style.display = 'block';
-
-        Array.from(sugerenciasCont.children).forEach(div => {
-          div.addEventListener('click', () => {
-            skuInput.value = div.dataset.sku;
-            tipoSpan.textContent = div.dataset.tipo || '';
-            productoActual = {
-              sku: div.dataset.sku,
-              tipo: div.dataset.tipo,
-              precio: parseFloat(div.dataset.precio) || 0,
-              promocion: parseFloat(div.dataset.promocion) || 0,
-              cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
-            };
-            calcularPrecioFinal();
-            datosProducto.classList.remove('hidden');
-            sugerenciasCont.style.display = 'none';
-            skuInput.focus();
-          });
+          skuInput.focus();
         });
       });
-  }
+    });
+}
+
 
   skuInput.addEventListener('blur', () => {
     setTimeout(() => {
