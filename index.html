@@ -78,7 +78,7 @@
       html5QrcodeScanner.stop();
       document.getElementById('scanner-container').classList.add('hidden');
 
-      const codigoLimpio = decodedText.slice(-5); // <-- ¡Usar los últimos 5 dígitos!
+      const codigoLimpio = decodedText.slice(-4); // <-- ¡Usar los últimos 4 dígitos!
 
       if (inputSkuActual) {
         const input = document.getElementById(inputSkuActual);
@@ -188,8 +188,8 @@ else if (tipo === 'venta') {
   let texto = skuInput.value.trim().toLowerCase();
 
   // 🔧 Si el código es más largo que 5 caracteres, recorta los últimos 5
-  if (texto.length > 5) {
-    texto = texto.slice(-5);
+  if (texto.length > 4) {
+    texto = texto.slice(-4);
     skuInput.value = texto; // actualizar input también
   }
 
