@@ -125,8 +125,8 @@
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
     </form>
   `;
-} 
- else if (tipo === 'venta') {
+ 
+} else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
@@ -142,174 +142,209 @@
 
       <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
         <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
-        <p><strong>Precio aplicado:</strong> $<span id="venta-precio"></span></p>
+        <p><strong>Precio aplicado:</strong> $<span id="venta-precio">0</span></p>
         <label>Cantidad:
           <input id="venta-cantidad" type="number" value="1" min="1" class="border p-2 rounded w-full" />
         </label>
       </div>
 
-      <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
+      <button type="button" id="btn-agregar-carrito" class="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
+        Agregar al Carrito
+      </button>
+
+      <table id="tabla-carrito" class="w-full mt-4 text-sm border-collapse hidden">
+        <thead>
+          <tr class="bg-gray-200 text-left">
+            <th class="border px-2 py-1">SKU</th>
+            <th class="border px-2 py-1">Tipo</th>
+            <th class="border px-2 py-1">Cantidad</th>
+            <th class="border px-2 py-1">Precio</th>
+            <th class="border px-2 py-1">Total</th>
+            <th class="border px-2 py-1">Eliminar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <p class="text-xl font-bold mt-4">Precio total: $<span id="precio-final">0</span></p>
 
       <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
     </form>
   `;
 
   // Variables
-const form = document.getElementById('form-venta');
-const skuInput = document.getElementById('sku-buscar');
-const sugerenciasCont = document.getElementById('sugerencias-sku');
-const precioSpan = document.getElementById('venta-precio');
-const tipoSpan = document.getElementById('venta-tipo');
-const finalSpan = document.getElementById('precio-final');
-const cantidadInput = document.getElementById('venta-cantidad');
-const datosProducto = document.getElementById('datos-producto');
+  const form = document.getElementById('form-venta');
+  const skuInput = document.getElementById('sku-buscar');
+  const sugerenciasCont = document.getElementById('sugerencias-sku');
+  const precioSpan = document.getElementById('venta-precio');
+  const tipoSpan = document.getElementById('venta-tipo');
+  const finalSpan = document.getElementById('precio-final');
+  const cantidadInput = document.getElementById('venta-cantidad');
+  const datosProducto = document.getElementById('datos-producto');
+  const btnAgregar = document.getElementById('btn-agregar-carrito');
+  const tablaCarrito = document.getElementById('tabla-carrito');
+  const cuerpoTabla = tablaCarrito.querySelector('tbody');
 
-let productoActual = null;
+  let productoActual = null;
+  let carrito = [];
 
+  let ultimoTextoBuscado = '';
 
-// Evento para buscar mientras escribe
-skuInput.addEventListener('input', () => {
-  ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
-  buscarYMostrarProducto();
-});
+  skuInput.addEventListener('input', () => {
+    ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
+    buscarYMostrarProducto();
+  });
 
-let ultimoTextoBuscado = '';
+  function buscarYMostrarProducto() {
+    let texto = skuInput.value.trim().toLowerCase();
+    if (!texto || texto.length < 1) {
+      sugerenciasCont.style.display = 'none';
+      datosProducto.classList.add('hidden');
+      productoActual = null;
+      precioSpan.textContent = '0.00';
+      return;
+    }
 
-function buscarYMostrarProducto() {
-  let texto = skuInput.value.trim().toLowerCase();
-
-  if (!texto || texto.length < 1) {
-    sugerenciasCont.style.display = 'none';
-    datosProducto.classList.add('hidden');
-    productoActual = null;
-    precioSpan.textContent = '0.00';
-    finalSpan.textContent = '0.00';
-    return;
-  }
-
-  
-
-  const endText = texto + "\uf8ff";
-
-  db.ref('marroquineria')
-    .orderByChild('codigoSKU')
-    .startAt(texto)
-    .endAt(endText)
-    .limitToFirst(30)
-    .once('value', snapshot => {
-      
-      if (!snapshot.exists()) {
-        sugerenciasCont.style.display = 'none';
-        datosProducto.classList.add('hidden');
-        productoActual = null;
-        precioSpan.textContent = '0.00';
-        finalSpan.textContent = '0.00';
-        return;
-      }
-
-      const productosDB = snapshot.val();
-      const arrProd = Object.values(productosDB);
-
-      sugerenciasCont.innerHTML = arrProd.map(prod =>
-        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
-          data-sku="${prod.codigoSKU}" 
-          data-tipo="${prod.tipo}" 
-          data-precio="${prod.precioVenta}" 
-          data-promocion="${prod.precioPromocional || 0}" 
-          data-cantidad-promo="${prod.cantidadPromo || 0}">
-          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
-        </div>`
-      ).join('');
-      sugerenciasCont.style.display = 'block';
-
-      // Eventos click
-      Array.from(sugerenciasCont.children).forEach(div => {
-        div.addEventListener('click', () => {
-          skuInput.value = div.dataset.sku;
-          tipoSpan.textContent = div.dataset.tipo || '';
-          productoActual = {
-            sku: div.dataset.sku,
-            tipo: div.dataset.tipo,
-            precio: parseFloat(div.dataset.precio) || 0,
-            promocion: parseFloat(div.dataset.promocion) || 0,
-            cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
-          };
-          calcularPrecioFinal();
-          datosProducto.classList.remove('hidden');
+    const endText = texto + "\uf8ff";
+    db.ref('marroquineria')
+      .orderByChild('codigoSKU')
+      .startAt(texto)
+      .endAt(endText)
+      .limitToFirst(30)
+      .once('value', snapshot => {
+        if (!snapshot.exists()) {
           sugerenciasCont.style.display = 'none';
-          skuInput.focus();
+          datosProducto.classList.add('hidden');
+          productoActual = null;
+          precioSpan.textContent = '0.00';
+          return;
+        }
+
+        const productosDB = snapshot.val();
+        const arrProd = Object.values(productosDB);
+
+        sugerenciasCont.innerHTML = arrProd.map(prod =>
+          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+            data-sku="${prod.codigoSKU}" 
+            data-tipo="${prod.tipo}" 
+            data-precio="${prod.precioVenta}" 
+            data-promocion="${prod.precioPromocional || 0}" 
+            data-cantidad-promo="${prod.cantidadPromo || 0}">
+            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+          </div>`
+        ).join('');
+        sugerenciasCont.style.display = 'block';
+
+        Array.from(sugerenciasCont.children).forEach(div => {
+          div.addEventListener('click', () => {
+            skuInput.value = div.dataset.sku;
+            tipoSpan.textContent = div.dataset.tipo || '';
+            productoActual = {
+              sku: div.dataset.sku,
+              tipo: div.dataset.tipo,
+              precio: parseFloat(div.dataset.precio) || 0,
+              promocion: parseFloat(div.dataset.promocion) || 0,
+              cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
+            };
+            calcularPrecioFinal();
+            datosProducto.classList.remove('hidden');
+            sugerenciasCont.style.display = 'none';
+            skuInput.focus();
+          });
         });
       });
-    });
-}
-
-
-function calcularPrecioFinal() {
-  if (!productoActual) return;
-  const cantidad = parseInt(cantidadInput?.value) || 1;
-  const promo = productoActual.promocion;
-  const cantPromo = productoActual.cantidadPromo;
-
-  let final;
-  if (promo > 0 && cantidad >= cantPromo) {
-    final = promo * cantidad;
-  } else {
-    final = productoActual.precio * cantidad;
   }
-  finalSpan.textContent = final.toFixed(2);
-}
-
-
-  cantidadInput.addEventListener('input', calcularPrecioFinal);
 
   function calcularPrecioFinal() {
     if (!productoActual) return;
-
     const cantidad = parseInt(cantidadInput.value) || 1;
     let precioAplicado = productoActual.precio;
-
     if (productoActual.promocion > 0 && cantidad >= productoActual.cantidadPromo) {
       precioAplicado = productoActual.promocion;
     }
-
     precioSpan.textContent = precioAplicado.toFixed(2);
-    finalSpan.textContent = (precioAplicado * cantidad).toFixed(2);
   }
 
-  function mostrarDatosProducto(producto) {
-    productoActual = producto;
-    tipoSpan.textContent = producto.tipo || '';
-    precioSpan.textContent = parseFloat(producto.precioVenta || producto.precio || 0).toFixed(2);
-    calcularPrecioFinal();
-    datosProducto.classList.remove('hidden');
+  cantidadInput.addEventListener('input', calcularPrecioFinal);
+
+  btnAgregar.addEventListener('click', () => {
+    if (!productoActual) {
+      alert('Seleccioná un producto válido.');
+      return;
+    }
+
+    const cantidad = parseInt(cantidadInput.value) || 1;
+    const promo = productoActual.promocion;
+    const cantPromo = productoActual.cantidadPromo;
+    const precioUnitario = (promo > 0 && cantidad >= cantPromo) ? promo : productoActual.precio;
+    const total = precioUnitario * cantidad;
+
+    carrito.push({
+      sku: productoActual.sku,
+      tipo: productoActual.tipo,
+      cantidad,
+      precioUnitario,
+      total
+    });
+
+    actualizarTablaCarrito();
+    limpiarCamposProducto();
+  });
+
+  function actualizarTablaCarrito() {
+    cuerpoTabla.innerHTML = '';
+    let totalFinal = 0;
+
+    carrito.forEach((item, index) => {
+      totalFinal += item.total;
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td class="border px-2 py-1">${item.sku}</td>
+        <td class="border px-2 py-1">${item.tipo}</td>
+        <td class="border px-2 py-1">${item.cantidad}</td>
+        <td class="border px-2 py-1">$${item.precioUnitario.toFixed(2)}</td>
+        <td class="border px-2 py-1">$${item.total.toFixed(2)}</td>
+        <td class="border px-2 py-1 text-center">
+          <button class="text-red-600" onclick="eliminarDelCarrito(${index})">✖</button>
+        </td>
+      `;
+      cuerpoTabla.appendChild(fila);
+    });
+
+    finalSpan.textContent = totalFinal.toFixed(2);
+    if (carrito.length > 0) tablaCarrito.classList.remove('hidden');
+    else tablaCarrito.classList.add('hidden');
+  }
+
+  window.eliminarDelCarrito = function (index) {
+    carrito.splice(index, 1);
+    actualizarTablaCarrito();
+  }
+
+  function limpiarCamposProducto() {
+    skuInput.value = '';
+    cantidadInput.value = 1;
+    datosProducto.classList.add('hidden');
+    productoActual = null;
   }
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
+    if (carrito.length === 0) {
+      alert('El carrito está vacío.');
+      return;
+    }
+
     const fecha = document.getElementById('fecha').value || new Date().toISOString().split('T')[0];
     const cliente = document.getElementById('cliente').value.trim();
     const dni = document.getElementById('dni').value.trim();
-    const sku = skuInput.value.trim();
-    const tipo = tipoSpan.textContent.trim();
-    const precio = parseFloat(precioSpan.textContent) || 0;
-    const total = parseFloat(finalSpan.textContent) || 0;
-    const cantidad = parseInt(cantidadInput.value) || 1;
-
-    if (!sku || !tipo || precio === 0) {
-      alert('Debe seleccionar un producto válido.');
-      return;
-    }
 
     const venta = {
       fecha,
       cliente,
       dni,
-      sku,
-      tipo,
-      precioUnitario: precio,
-      total,
-      cantidad
+      productos: carrito
     };
 
     db.ref('ventas').push(venta, (error) => {
@@ -317,12 +352,11 @@ function calcularPrecioFinal() {
         alert('Error al guardar la venta.');
       } else {
         alert('Venta registrada correctamente.');
-        location.reload(); // recarga la página para resetear formulario
+        location.reload();
       }
     });
   });
 }
-
 
     else if (tipo === 'consulta') {
     cont.innerHTML = `
