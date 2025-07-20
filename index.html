@@ -631,17 +631,7 @@ if (e.target.id === 'form-venta') {
   }
 
         
-  db.ref('ventas_marroquineria').push(venta)
-    .then(() => {
-      alert('Venta registrada correctamente');
-      form.reset();
-      carrito = []; // vacía el carrito
-      document.getElementById('datos-producto').classList.add('hidden');
-      document.getElementById('precio-final').textContent = '0';
-
-
-    })
-    .catch(e => alert('Error al registrar venta: ' + e.message));
+  
 }
 
 });
