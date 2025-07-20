@@ -46,6 +46,8 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   
+  let carrito = [];
+
   function parseDecimal(valor) {
     if (valor == null) return 0;
     valor = String(valor).trim().replace(',', '.');
@@ -187,8 +189,7 @@
   const cuerpoTabla = tablaCarrito.querySelector('tbody');
 
   let productoActual = null;
-  let carrito = [];
-
+  
   let ultimoTextoBuscado = '';
 
   skuInput.addEventListener('input', () => {
@@ -358,9 +359,7 @@
       }
     });
   });
-}
-
-    else if (tipo === 'consulta') {
+} else if (tipo === 'consulta') {
     cont.innerHTML = `
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
       <label class="block mb-4">
@@ -603,39 +602,67 @@ document.addEventListener('submit', e => {
       });
   }
 
-  if (e.target.id === 'form-venta') {
-    e.preventDefault();
-    const form = e.target;
-    const inputs = form.querySelectorAll('input, select');
+if (e.target.id === 'form-venta') {
+  e.preventDefault();
 
-    let codigoSKUVenta = inputs[3].value.trim();
-
-    if (!codigoSKUVenta) {
-      alert('Debe ingresar un Código SKU válido.');
-      return;
-    }
-
-    const venta = {
-      fecha: inputs[0].value,
-      clienteNombre: inputs[1].value.trim(),
-      clienteDNI: inputs[2].value.trim(),
-      codigoSKU: codigoSKUVenta,
-      bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
-      formaPago: document.getElementById('forma-pago').value,
-      moneda: document.getElementById('moneda').value,
-      precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
-    };
-
-    db.ref('ventas_marroquineria').push(venta)
-      .then(() => {
-        alert('Venta registrada correctamente');
-        form.reset();
-        document.getElementById('datos-producto').classList.add('hidden');
-        document.getElementById('precio-final').textContent = '0';
-      })
-      .catch(e => alert('Error al registrar venta: ' + e.message));
+  if (carrito.length === 0) {
+    alert('Debe agregar al menos un producto al carrito.');
+    return;
   }
+
+  const form = e.target;
+  const inputs = form.querySelectorAll('input, select');
+
+  const venta = {
+    fecha: inputs[0].value,
+    clienteNombre: inputs[1].value.trim(),
+    clienteDNI: inputs[2].value.trim(),
+    productos: carrito, // contiene SKU, Tipo, Cantidad, Precio, Total
+    formaPago: document.getElementById('forma-pago').value,
+    moneda: document.getElementById('moneda').value,
+    totalVenta: carrito.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0)
+  };
+
+  db.ref('ventas_marroquineria').push(venta)
+    .then(() => {
+      alert('Venta registrada correctamente');
+      form.reset();
+      carrito = []; // vacía el carrito
+      document.getElementById('datos-producto').classList.add('hidden');
+      document.getElementById('precio-final').textContent = '0';
+      mostrarCarritoEnPantalla(); // si tenés una función para actualizar la vista
+      if (confirm('¿Desea enviar la venta por WhatsApp?')) {
+        enviarVentaPorWhatsApp(venta);
+      }
+
+    })
+    .catch(e => alert('Error al registrar venta: ' + e.message));
+}
+
 });
+
+function enviarVentaPorWhatsApp(venta) {
+  const numeroWhatsApp = '5492302419786'; // ← reemplazá con tu número, sin espacios
+
+  let mensaje = `🧾 *Nueva Venta Registrada*\n`;
+  mensaje += `📅 Fecha: ${venta.fecha}\n`;
+  mensaje += `👤 Cliente: ${venta.clienteNombre} (DNI: ${venta.clienteDNI})\n\n`;
+
+  mensaje += `📦 *Productos:*\n`;
+  venta.productos.forEach((p, i) => {
+    mensaje += `${i + 1}. SKU: ${p.SKU}, Tipo: ${p.Tipo}, Cant: ${p.Cantidad}, Precio: $${p.Precio}, Total: $${p.total}\n`;
+  });
+
+  mensaje += `\n💰 Total: $${venta.totalVenta}\n`;
+  mensaje += `🧾 Forma de pago: ${venta.formaPago}\n`;
+  mensaje += `💱 Moneda: ${venta.moneda}`;
+
+  const mensajeCodificado = encodeURIComponent(mensaje);
+  const url = `https://wa.me/${numeroWhatsApp}?text=${mensajeCodificado}`;
+
+  // Abre WhatsApp Web o la app
+  window.open(url, '_blank');
+}
 
 </script>
 
