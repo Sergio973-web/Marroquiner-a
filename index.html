@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gestión Marroquinería</title>
+  <title>Sistema de Gestión Comercial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -14,9 +14,8 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
   <div class="w-full max-w-3xl p-6 bg-white rounded-2xl shadow-lg">
-    <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2 cursor-pointer" onclick="location.reload()">Gestión Marroquinería</h1>
-    <p class="text-center text-gray-600 text-lg mb-6">Sistema de Gestión Comercial - Marroquinería</p>
-
+    <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2 cursor-pointer" onclick="location.reload()">Sistema de Gestión Comercial</h1>
+    
     <div class="grid grid-cols-2 gap-6 mb-8">
       <button onclick="mostrarFormulario('ingreso')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-lg font-semibold">Ingreso Producto</button>
       <button onclick="mostrarFormulario('venta')" class="bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-semibold">Venta Producto</button>
@@ -613,16 +612,25 @@ if (e.target.id === 'form-venta') {
   const form = e.target;
   const inputs = form.querySelectorAll('input, select');
 
+  const formaPago = document.getElementById('forma-pago')?.value || 'Sin forma de pago';
+  const moneda = document.getElementById('moneda')?.value || 'Sin moneda';
+
   const venta = {
     fecha: inputs[0].value,
     clienteNombre: inputs[1].value.trim(),
     clienteDNI: inputs[2].value.trim(),
-    productos: carrito, // contiene SKU, Tipo, Cantidad, Precio, Total
-    formaPago: document.getElementById('forma-pago').value,
-    moneda: document.getElementById('moneda').value,
+    productos: carrito,
+    formaPago: formaPago,
+    moneda: moneda,
     totalVenta: carrito.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0)
   };
 
+  // Preguntar si desea enviar por WhatsApp
+  if (confirm('¿Desea enviar la venta por WhatsApp?')) {
+    enviarVentaPorWhatsApp(venta);
+  }
+
+        
   db.ref('ventas_marroquineria').push(venta)
     .then(() => {
       alert('Venta registrada correctamente');
@@ -630,10 +638,7 @@ if (e.target.id === 'form-venta') {
       carrito = []; // vacía el carrito
       document.getElementById('datos-producto').classList.add('hidden');
       document.getElementById('precio-final').textContent = '0';
-      mostrarCarritoEnPantalla(); // si tenés una función para actualizar la vista
-      if (confirm('¿Desea enviar la venta por WhatsApp?')) {
-        enviarVentaPorWhatsApp(venta);
-      }
+
 
     })
     .catch(e => alert('Error al registrar venta: ' + e.message));
@@ -642,25 +647,37 @@ if (e.target.id === 'form-venta') {
 });
 
 function enviarVentaPorWhatsApp(venta) {
-  const numeroWhatsApp = '5492302419786'; // ← reemplazá con tu número, sin espacios
+  let numeroWhatsApp = prompt('Ingrese el número completo con prefijo para enviar WhatsApp:', '5492302419786');
+  if (!numeroWhatsApp) {
+    alert('No se ingresó un número válido.');
+    return;
+  }
 
-  let mensaje = `🧾 *Nueva Venta Registrada*\n`;
-  mensaje += `📅 Fecha: ${venta.fecha}\n`;
-  mensaje += `👤 Cliente: ${venta.clienteNombre} (DNI: ${venta.clienteDNI})\n\n`;
+  numeroWhatsApp = numeroWhatsApp.replace(/\D/g, '');
 
-  mensaje += `📦 *Productos:*\n`;
-  venta.productos.forEach((p, i) => {
-    mensaje += `${i + 1}. SKU: ${p.SKU}, Tipo: ${p.Tipo}, Cant: ${p.Cantidad}, Precio: $${p.Precio}, Total: $${p.total}\n`;
-  });
+  const productosTexto = venta.productos.map((p, i) => {
+    const sku = p.sku || p.SKU || 'Sin SKU';
+    const tipo = p.tipo || p.Tipo || 'Sin tipo';
+    const cantidad = p.cantidad || p.Cantidad || 0;
+    const precio = p.precioUnitario || 0;
+    const total = p.total || p.Total || 0;
 
-  mensaje += `\n💰 Total: $${venta.totalVenta}\n`;
-  mensaje += `🧾 Forma de pago: ${venta.formaPago}\n`;
-  mensaje += `💱 Moneda: ${venta.moneda}`;
+    return `${i + 1}. SKU: ${sku}, Tipo: ${tipo}, Cant: ${cantidad}, Precio: $${precio}, Total: $${total}`;
+  }).join('\n');
 
-  const mensajeCodificado = encodeURIComponent(mensaje);
-  const url = `https://wa.me/${numeroWhatsApp}?text=${mensajeCodificado}`;
+  const mensaje = `
+*Nueva Venta Registrada*
+Fecha: ${venta.fecha}
+Cliente: ${venta.clienteNombre} (DNI: ${venta.clienteDNI})
 
-  // Abre WhatsApp Web o la app
+*Productos:*
+${productosTexto}
+
+Total: $${venta.totalVenta}
+
+`;
+
+  const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
 }
 
