@@ -151,7 +151,7 @@ window.mostrarFormulario = function(tipo) {
 
     // Evento carga masiva - ¡IMPORTANTE: async para usar await!
     document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
-      const tipo = document.getElementById('tipo-producto').value.trim();
+      const tipo = document.getElementById('tipo-ingreso').value.trim();
       const text = document.getElementById('carga-masiva-textarea').value.trim();
 
       if (!tipo) {
