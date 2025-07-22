@@ -776,14 +776,23 @@ function enviarVentaPorWhatsApp(venta) {
   numeroWhatsApp = numeroWhatsApp.replace(/\D/g, '');
 
   const productosTexto = venta.productos.map((p, i) => {
-    const sku = p.sku || p.SKU || 'Sin SKU';
-    const tipo = p.tipo || p.Tipo || 'Sin tipo';
-    const cantidad = p.cantidad || p.Cantidad || 0;
-    const precio = p.precioUnitario || 0;
-    const total = p.total || p.Total || 0;
+  const skuOriginal = p.sku || p.SKU || 'Sin SKU';
+  const cantidad = p.cantidad || p.Cantidad || 0;
+  const precio = p.precioUnitario || 0;
+  const total = p.total || p.Total || 0;
 
-    return `${i + 1}. SKU: ${sku}, Tipo: ${tipo}, Cant: ${cantidad}, Precio: $${precio}, Total: $${total}`;
-  }).join('\n');
+  // Extraer descripción del SKU
+  let descripcionExtraida = '';
+  if (skuOriginal.includes(' ')) {
+    descripcionExtraida = skuOriginal.split(' ').slice(1).join(' ');
+  } else if (skuOriginal.includes('-')) {
+    descripcionExtraida = skuOriginal.split('-').slice(1).join('-');
+  } else {
+    descripcionExtraida = skuOriginal;
+  }
+
+  return `${i + 1}. SKU: ${descripcionExtraida.trim()}, Cant: ${cantidad}, Precio: $${precio}, Total: $${total}`;
+}).join('\n');
 
   const mensaje = `
 *Nueva Venta Registrada*
