@@ -8,6 +8,8 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <!-- Librería para escaneo -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -95,8 +97,6 @@
     document.getElementById('scanner-container').classList.add('hidden');
   });
 }
-
-
   function cerrarScanner() {
     if(html5QrcodeScanner){
       html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
@@ -108,10 +108,11 @@
   const cont = document.getElementById('formulario');
   cont.innerHTML = '';
 
-  if (tipo === 'ingreso') {
+if (tipo === 'ingreso') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
     <form id="form-ingreso" class="grid grid-cols-1 gap-4">
+      <!-- formulario normal individual -->
       <div class="flex items-center space-x-2">
         <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
         <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
@@ -124,21 +125,78 @@
       <input id="fecha-ingreso" class="border p-2 rounded" type="date" required />
       <textarea id="observaciones" class="border p-2 rounded" placeholder="Observaciones"></textarea>
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+
+      <hr class="my-4" />
+
+      <!-- Área para carga masiva -->
+      <h3 class="text-xl font-semibold">Carga masiva de productos</h3>
+      <textarea id="carga-masiva-textarea" class="border p-2 rounded h-40" placeholder="Pegar datos CSV aquí: códigoSKU,tipo,precioCompra,precioPromocional,cantidadPromocion,fechaIngreso,observaciones"></textarea>
+      <button type="button" id="btn-carga-masiva" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded mt-2">Cargar productos masivamente</button>
     </form>
   `;
 
-  // Código para calcular automáticamente el precio de venta
-  const inputCompra = document.getElementById('precio-compra');
-  const inputVenta = document.getElementById('precio-venta');
+  // ... Aquí tu código para cálculo automático precio venta y demás listeners ...
 
-  inputCompra.addEventListener('input', () => {
-    const compra = parseFloat(inputCompra.value);
-    if (!isNaN(compra)) {
-      const venta = compra * 2.10; // 110% más
-      inputVenta.value = venta.toFixed(2);
-    } else {
-      inputVenta.value = '';
+  // Listener para carga masiva
+  document.getElementById('btn-carga-masiva').addEventListener('click', () => {
+    const text = document.getElementById('carga-masiva-textarea').value.trim();
+    if (!text) {
+      alert('Por favor pegá los datos para la carga masiva.');
+      return;
     }
+
+    // Parsear líneas CSV (asumiendo sin encabezados)
+    const lineas = text.split('\n');
+    const productos = [];
+
+    for (const linea of lineas) {
+      const columnas = linea.split(',');
+      if (columnas.length < 7) {
+        alert('Formato incorrecto en alguna línea. Debe tener 7 columnas.');
+        return;
+      }
+
+      const [codigoSKU, tipo, precioCompra, precioPromocional, cantidadPromocion, fechaIngreso, observaciones] = columnas;
+
+      const compraNum = parseFloat(precioCompra);
+      if (isNaN(compraNum)) {
+        alert(`Precio compra inválido en línea: ${linea}`);
+        return;
+      }
+
+      const promocionalNum = parseFloat(precioPromocional) || 0;
+      const cantPromoNum = parseInt(cantidadPromocion) || 0;
+
+      // calcular precioVenta +110%
+      const precioVentaCalc = compraNum * 2.10;
+
+      productos.push({
+        codigoSKU: codigoSKU.trim().toLowerCase(),
+        tipo: tipo.trim(),
+        precioCompra: compraNum,
+        precioVenta: precioVentaCalc,
+        precioPromocional: promocionalNum,
+        cantidadPromocion: cantPromoNum,
+        fechaIngreso: fechaIngreso.trim(),
+        observaciones: observaciones.trim(),
+      });
+    }
+
+    // Subir todos a Firebase
+    const updates = {};
+    productos.forEach((prod) => {
+      const newKey = db.ref('marroquineria').push().key;
+      updates[`marroquineria/${newKey}`] = prod;
+    });
+
+    db.ref().update(updates)
+      .then(() => {
+        alert('Productos cargados masivamente correctamente.');
+        document.getElementById('carga-masiva-textarea').value = '';
+      })
+      .catch((error) => {
+        alert('Error al cargar productos masivamente: ' + error);
+      });
   });
 }
  else if (tipo === 'venta') {
