@@ -217,9 +217,26 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     // Paso 2: Preparar actualizaciones
     const updates = {};
     productos.forEach(prod => {
-      if (skuMap[prod.codigoSKU]) {
-        // Actualizar producto existente
-        updates[`marroquineria/${skuMap[prod.codigoSKU]}`] = prod;
+      const existingKey = skuMap[prod.codigoSKU];
+      if (existingKey) {
+        const existente = existentes[existingKey];
+    
+        const actualizacion = {
+          ...existente,
+          codigoSKU: prod.codigoSKU,
+          tipo: prod.tipo,
+          precioCompra: prod.precioCompra,
+          // Solo recalcula precioVenta si cambió precioCompra
+          precioVenta: prod.precioCompra !== existente.precioCompra
+            ? Math.ceil(prod.precioCompra * 2.10 / 10) * 10
+            : existente.precioVenta,
+          precioPromocional: prod.precioPromocional || existente.precioPromocional || 0,
+          cantidadPromocion: prod.cantidadPromocion || existente.cantidadPromocion || 0,
+          fechaIngreso: existente.fechaIngreso || prod.fechaIngreso, // conserva la original
+          observaciones: prod.observaciones || existente.observaciones || ''
+        };
+    
+        updates[`marroquineria/${existingKey}`] = actualizacion;
       } else {
         // Crear nuevo producto
         const newKey = db.ref('marroquineria').push().key;
