@@ -219,11 +219,6 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     productos.push(producto);
   }
 
-  // Aquí podrías guardar los productos en Firebase u otro sistema
-  console.log(productos);
-});
-
-
       try {
         // Leer productos ya en firebase
         const snapshot = await db.ref('marroquineria').once('value');
