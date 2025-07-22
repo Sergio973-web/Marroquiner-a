@@ -172,8 +172,9 @@ for (const linea of lineas) {
 
   let [codigoSKU, precioCompraStr] = columnas;
 
-  const tipo = codigoSKU.split(' ')[0].toLowerCase(); // Primera palabra como tipo
   codigoSKU = codigoSKU.toLowerCase();
+  const tipo = codigoSKU.split(' ')[0]; // Ya está en minúscula
+
 
   const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
   if (isNaN(precioCompra)) {
