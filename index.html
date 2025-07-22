@@ -112,7 +112,6 @@ window.mostrarFormulario = function(tipo) {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
     <form id="form-ingreso" class="grid grid-cols-1 gap-4">
-      <!-- Formulario individual -->
       <div class="flex items-center space-x-2">
         <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
         <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
@@ -125,6 +124,7 @@ window.mostrarFormulario = function(tipo) {
       <input id="fecha-ingreso" class="border p-2 rounded" type="date" required />
       <textarea id="observaciones" class="border p-2 rounded" placeholder="Observaciones"></textarea>
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+    </form>
 
       <hr class="my-4" />
 
