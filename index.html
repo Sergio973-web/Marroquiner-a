@@ -151,7 +151,7 @@
       }
     });
 
-document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+document.getElementById('btn-carga-masiva').addEventListener('click', () => {
   const tipo = document.getElementById('tipo-producto').value.trim();
   const text = document.getElementById('carga-masiva-textarea').value.trim();
 
@@ -202,9 +202,6 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
 
     productos.push(producto);
   }
-
-  console.log('Productos listos para guardar:', productos);
-
   try {
     // Paso 1: leer productos ya en firebase
     const snapshot = await db.ref('marroquineria').once('value');
