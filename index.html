@@ -159,57 +159,70 @@ window.mostrarFormulario = function(tipo) {
   });
 
     // Evento carga masiva - ¡IMPORTANTE: async para usar await!
-    document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
-      const tipo = document.getElementById('tipo-ingreso').value.trim();
-      const text = document.getElementById('carga-masiva-textarea').value.trim();
+    // Evento carga masiva - ¡IMPORTANTE: async para usar await!
+document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+  const tipo = document.getElementById('tipo-ingreso').value.trim();
+  const text = document.getElementById('carga-masiva-textarea').value.trim();
+  let multiplicador = parseFloat(document.getElementById('multiplicador').value);
 
-      if (!tipo) {
-        alert('Por favor, ingresá el tipo de producto antes de cargar.');
-        return;
-      }
+  // Si el multiplicador está vacío o es inválido, usar 2.1 por defecto
+  if (isNaN(multiplicador) || multiplicador <= 0) {
+    multiplicador = 2.1;
+  }
 
-      if (!text) {
-        alert('Por favor, pegá los datos para la carga masiva.');
-        return;
-      }
+  if (!tipo) {
+    alert('Por favor, ingresá el tipo de producto antes de cargar.');
+    return;
+  }
 
-      const lineas = text.split('\n');
-      const productos = [];
+  if (!text) {
+    alert('Por favor, pegá los datos para la carga masiva.');
+    return;
+  }
 
-      for (const linea of lineas) {
-        const columnas = linea.split(',').map(c => c.trim());
-        if (columnas.length < 2) {
-          alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
-          return;
-        }
+  const lineas = text.split('\n');
+  const productos = [];
 
-        let [codigoSKU, precioCompraStr, observaciones] = columnas;
-        observaciones = observaciones || '';
+  for (const linea of lineas) {
+    const columnas = linea.split(',').map(c => c.trim());
+    if (columnas.length < 2) {
+      alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
+      return;
+    }
 
-        codigoSKU = codigoSKU.toLowerCase();
+    let [codigoSKU, precioCompraStr, observaciones] = columnas;
+    observaciones = observaciones || '';
 
-        const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
-        if (isNaN(precioCompra)) {
-          alert(`Precio inválido en la línea: ${linea}`);
-          return;
-        }
+    codigoSKU = codigoSKU.toLowerCase();
 
-        const venta = precioCompra * 2.10;
-        const precioVenta = Math.ceil(venta / 10) * 10;
+    const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
+    if (isNaN(precioCompra)) {
+      alert(`Precio inválido en la línea: ${linea}`);
+      return;
+    }
 
-        const producto = {
-          codigoSKU,
-          tipo,
-          precioCompra,
-          precioVenta,
-          precioPromocional: 0,
-          cantidadPromocion: 0,
-          fechaIngreso: new Date().toISOString().split('T')[0],
-          observaciones,
-        };
+    // Cálculo con el multiplicador
+    const venta = precioCompra * multiplicador;
+    const precioVenta = Math.ceil(venta / 10) * 10;
 
-        productos.push(producto);
-      }
+    const producto = {
+      codigoSKU,
+      tipo,
+      precioCompra,
+      precioVenta,
+      precioPromocional: 0,
+      cantidadPromocion: 0,
+      fechaIngreso: new Date().toISOString().split('T')[0],
+      observaciones,
+    };
+
+    productos.push(producto);
+  }
+
+  // Aquí podrías guardar los productos en Firebase u otro sistema
+  console.log(productos);
+});
+
 
       try {
         // Leer productos ya en firebase
