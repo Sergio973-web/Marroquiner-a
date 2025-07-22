@@ -150,68 +150,85 @@
     });
 
     // Listener para carga masiva
-    document.getElementById('btn-carga-masiva').addEventListener('click', () => {
-      const text = document.getElementById('carga-masiva-textarea').value.trim();
-      if (!text) {
-        alert('Por favor pegá los datos para la carga masiva.');
-        return;
-      }
+    document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+  const text = document.getElementById('carga-masiva-textarea').value.trim();
+  if (!text) {
+    alert('Por favor pegá los datos para la carga masiva.');
+    return;
+  }
 
-      const lineas = text.split('\n');
-      const productos = [];
+  const lineas = text.split('\n');
+  const productos = [];
 
-      for (const linea of lineas) {
-        const columnas = linea.split(',');
-        if (columnas.length < 7) {
-          alert('Formato incorrecto en alguna línea. Debe tener 7 columnas.');
-          return;
-        }
+  for (const linea of lineas) {
+    const columnas = linea.split('—').map(c => c.trim());
+    if (columnas.length < 3) {
+      alert('Formato incorrecto en alguna línea. Debe tener 3 columnas separadas por "—"');
+      return;
+    }
 
-        let [codigoSKU, tipo, precioCompra, precioPromocional, cantidadPromocion, fechaIngreso, observaciones] = columnas;
+    let [codigoSKU, tipo, precioCompraStr] = columnas;
+    const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
+    if (isNaN(precioCompra)) {
+      alert(`Precio compra inválido en línea: ${linea}`);
+      return;
+    }
 
-        // Convertir codigoSKU a minúsculas para buscar luego
-        codigoSKU = codigoSKU.trim().toLowerCase();
+    const precioVenta = precioCompra * 2.10; // +110%
+    const precioPromocional = 0;
+    const cantidadPromocion = 0;
+    const fechaIngreso = new Date().toISOString().split('T')[0]; // hoy yyyy-mm-dd
+    const observaciones = 'SiPiedras Guille'; // proveedor fijo (podés cambiar)
 
-        const compraNum = parseFloat(precioCompra);
-        if (isNaN(compraNum)) {
-          alert(`Precio compra inválido en línea: ${linea}`);
-          return;
-        }
-
-        const promocionalNum = parseFloat(precioPromocional) || 0;
-        const cantPromoNum = parseInt(cantidadPromocion) || 0;
-
-        const precioVentaCalc = compraNum * 2.10;
-
-        productos.push({
-          codigoSKU,
-          tipo: tipo.trim(),
-          precioCompra: compraNum,
-          precioVenta: precioVentaCalc,
-          precioPromocional: promocionalNum,
-          cantidadPromocion: cantPromoNum,
-          fechaIngreso: fechaIngreso.trim(),
-          observaciones: observaciones.trim(),
-        });
-      }
-
-      // Subir todos a Firebase de una vez
-      const updates = {};
-      productos.forEach(prod => {
-        const newKey = db.ref('marroquineria').push().key;
-        updates[`marroquineria/${newKey}`] = prod;
-      });
-
-      db.ref().update(updates)
-        .then(() => {
-          alert('Productos cargados masivamente correctamente.');
-          document.getElementById('carga-masiva-textarea').value = '';
-        })
-        .catch(error => {
-          alert('Error al cargar productos masivamente: ' + error);
-        });
+    productos.push({
+      codigoSKU: codigoSKU.toLowerCase(),
+      tipo,
+      precioCompra,
+      precioVenta,
+      precioPromocional,
+      cantidadPromocion,
+      fechaIngreso,
+      observaciones,
     });
   }
+
+  try {
+    // Paso 1: leer productos ya en firebase
+    const snapshot = await db.ref('marroquineria').once('value');
+    const existentes = snapshot.val() || {};
+
+    // Map SKU -> key Firebase
+    const skuMap = {};
+    for (const key in existentes) {
+      const prod = existentes[key];
+      if (prod.codigoSKU) {
+        skuMap[prod.codigoSKU] = key;
+      }
+    }
+
+    // Paso 2: Preparar actualizaciones
+    const updates = {};
+    productos.forEach(prod => {
+      if (skuMap[prod.codigoSKU]) {
+        // Actualizar producto existente
+        updates[`marroquineria/${skuMap[prod.codigoSKU]}`] = prod;
+      } else {
+        // Crear nuevo producto
+        const newKey = db.ref('marroquineria').push().key;
+        updates[`marroquineria/${newKey}`] = prod;
+      }
+    });
+
+    // Paso 3: Ejecutar update masiva
+    await db.ref().update(updates);
+    alert('Productos cargados/actualizados correctamente.');
+    document.getElementById('carga-masiva-textarea').value = '';
+
+  } catch (error) {
+    alert('Error en la carga masiva: ' + error.message);
+  }
+});
+}
  else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
