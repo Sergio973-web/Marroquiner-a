@@ -153,6 +153,7 @@
 
 
    // Listener para carga masiva
+// Listener para carga masiva
 document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
   const text = document.getElementById('carga-masiva-textarea').value.trim();
   if (!text) {
@@ -160,13 +161,19 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     return;
   }
 
+  const tipo = prompt('¿Qué tipo de producto estás ingresando? (Por ejemplo: Cuberen, Venta, etc.)');
+  if (!tipo) {
+    alert('Debés ingresar un tipo para continuar.');
+    return;
+  }
+
   const lineas = text.split('\n');
   const productos = [];
 
   for (const linea of lineas) {
-    const columnas = linea.split('—').map(c => c.trim());
+    const columnas = linea.split(',').map(c => c.trim());
     if (columnas.length < 3) {
-      alert('Formato incorrecto en alguna línea. Debe tener al menos 3 columnas separadas por "—": SKU, Precio, Observaciones');
+      alert('Formato incorrecto en alguna línea. Debe tener al menos 3 columnas separadas por coma: SKU, Precio, Observaciones');
       return;
     }
 
@@ -174,7 +181,6 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     observaciones = observaciones || '';
 
     codigoSKU = codigoSKU.toLowerCase();
-    const tipo = 'Cuberen';
 
     const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
     if (isNaN(precioCompra)) {
@@ -199,7 +205,6 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
       observaciones,
     });
   }
-
   try {
     // Paso 1: leer productos ya en firebase
     const snapshot = await db.ref('marroquineria').once('value');
