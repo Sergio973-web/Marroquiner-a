@@ -125,10 +125,23 @@
       <textarea id="observaciones" class="border p-2 rounded" placeholder="Observaciones"></textarea>
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
     </form>
-
   `;
- 
-} else if (tipo === 'venta') {
+
+  // Código para calcular automáticamente el precio de venta
+  const inputCompra = document.getElementById('precio-compra');
+  const inputVenta = document.getElementById('precio-venta');
+
+  inputCompra.addEventListener('input', () => {
+    const compra = parseFloat(inputCompra.value);
+    if (!isNaN(compra)) {
+      const venta = compra * 2.10; // 110% más
+      inputVenta.value = venta.toFixed(2);
+    } else {
+      inputVenta.value = '';
+    }
+  });
+}
+ else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
