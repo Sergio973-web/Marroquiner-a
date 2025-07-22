@@ -143,11 +143,14 @@
       const compra = parseFloat(inputCompra.value);
       if (!isNaN(compra)) {
         const venta = compra * 2.10; // 110% más
-        inputVenta.value = venta.toFixed(2);
+        // Redondear hacia arriba a la decena más próxima
+        const ventaRedondeada = Math.ceil(venta / 10) * 10;
+        inputVenta.value = ventaRedondeada.toFixed(0); // Sin decimales
       } else {
         inputVenta.value = '';
       }
     });
+
 
     // Listener para carga masiva
     document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
