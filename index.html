@@ -151,7 +151,7 @@
       }
     });
 
-document.getElementById('btn-carga-masiva').addEventListener('click', () => {
+document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
   const tipo = document.getElementById('tipo-producto').value.trim();
   const text = document.getElementById('carga-masiva-textarea').value.trim();
 
@@ -204,6 +204,7 @@ document.getElementById('btn-carga-masiva').addEventListener('click', () => {
   }
 
   console.log('Productos listos para guardar:', productos);
+
   try {
     // Paso 1: leer productos ya en firebase
     const snapshot = await db.ref('marroquineria').once('value');
@@ -224,7 +225,7 @@ document.getElementById('btn-carga-masiva').addEventListener('click', () => {
       const existingKey = skuMap[prod.codigoSKU];
       if (existingKey) {
         const existente = existentes[existingKey];
-    
+
         const actualizacion = {
           ...existente,
           codigoSKU: prod.codigoSKU,
@@ -239,7 +240,7 @@ document.getElementById('btn-carga-masiva').addEventListener('click', () => {
           fechaIngreso: existente.fechaIngreso || prod.fechaIngreso, // conserva la original
           observaciones: prod.observaciones || existente.observaciones || ''
         };
-    
+
         updates[`marroquineria/${existingKey}`] = actualizacion;
       } else {
         // Crear nuevo producto
@@ -257,7 +258,6 @@ document.getElementById('btn-carga-masiva').addEventListener('click', () => {
     alert('Error en la carga masiva: ' + error.message);
   }
 });
-}
  else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
