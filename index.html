@@ -151,19 +151,18 @@
       }
     });
 
-
-   // Listener para carga masiva
 // Listener para carga masiva
 document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
   const text = document.getElementById('carga-masiva-textarea').value.trim();
+  const tipo = document.getElementById('tipo-producto').value.trim();
+
   if (!text) {
     alert('Por favor pegá los datos para la carga masiva.');
     return;
   }
 
-  const tipo = prompt('¿Qué tipo de producto estás ingresando? (Por ejemplo: Cuberen, Venta, etc.)');
   if (!tipo) {
-    alert('Debés ingresar un tipo para continuar.');
+    alert('Por favor ingresá el tipo de producto.');
     return;
   }
 
@@ -172,8 +171,8 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
 
   for (const linea of lineas) {
     const columnas = linea.split(',').map(c => c.trim());
-    if (columnas.length < 3) {
-      alert('Formato incorrecto en alguna línea. Debe tener al menos 3 columnas separadas por coma: SKU, Precio, Observaciones');
+    if (columnas.length < 2) {
+      alert('Formato incorrecto en alguna línea. Debe tener al menos 2 columnas separadas por coma: SKU y Precio');
       return;
     }
 
