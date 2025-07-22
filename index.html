@@ -152,8 +152,8 @@
     });
 
 
-    // Listener para carga masiva
-    document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+   // Listener para carga masiva
+document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
   const text = document.getElementById('carga-masiva-textarea').value.trim();
   if (!text) {
     alert('Por favor pegá los datos para la carga masiva.');
@@ -161,44 +161,44 @@
   }
 
   const lineas = text.split('\n');
-const productos = [];
+  const productos = [];
 
-for (const linea of lineas) {
-  const columnas = linea.split('—').map(c => c.trim());
-  if (columnas.length < 2) {
-    alert('Formato incorrecto en alguna línea. Debe tener 2 columnas separadas por "—"');
-    return;
+  for (const linea of lineas) {
+    const columnas = linea.split('—').map(c => c.trim());
+    if (columnas.length < 3) {
+      alert('Formato incorrecto en alguna línea. Debe tener al menos 3 columnas separadas por "—": SKU, Precio, Observaciones');
+      return;
+    }
+
+    let [codigoSKU, precioCompraStr, observaciones] = columnas;
+    observaciones = observaciones || '';
+
+    codigoSKU = codigoSKU.toLowerCase();
+    const tipo = codigoSKU.split(' ')[0]; // Ya está en minúscula
+
+    const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
+    if (isNaN(precioCompra)) {
+      alert(`Precio compra inválido en línea: ${linea}`);
+      return;
+    }
+
+    const venta = precioCompra * 2.10;
+    const precioVenta = Math.ceil(venta / 10) * 10; // redondeo hacia la decena superior
+    const precioPromocional = 0;
+    const cantidadPromocion = 0;
+    const fechaIngreso = new Date().toISOString().split('T')[0];
+
+    productos.push({
+      codigoSKU,
+      tipo,
+      precioCompra,
+      precioVenta,
+      precioPromocional,
+      cantidadPromocion,
+      fechaIngreso,
+      observaciones,
+    });
   }
-
-  let [codigoSKU, precioCompraStr] = columnas;
-
-  codigoSKU = codigoSKU.toLowerCase();
-  const tipo = codigoSKU.split(' ')[0]; // Ya está en minúscula
-
-
-  const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
-  if (isNaN(precioCompra)) {
-    alert(`Precio compra inválido en línea: ${linea}`);
-    return;
-  }
-
-  const precioVenta = precioCompra * 2.10;
-  const precioPromocional = 0;
-  const cantidadPromocion = 0;
-  const fechaIngreso = new Date().toISOString().split('T')[0];
-  const observaciones = 'SiPiedras Guille';
-
-  productos.push({
-    codigoSKU,
-    tipo,
-    precioCompra,
-    precioVenta,
-    precioPromocional,
-    cantidadPromocion,
-    fechaIngreso,
-    observaciones,
-  });
-}
 
   try {
     // Paso 1: leer productos ya en firebase
