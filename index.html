@@ -151,18 +151,17 @@
       }
     });
 
-// Listener para carga masiva
-document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
-  const text = document.getElementById('carga-masiva-textarea').value.trim();
+document.getElementById('btn-carga-masiva').addEventListener('click', () => {
   const tipo = document.getElementById('tipo-producto').value.trim();
+  const text = document.getElementById('carga-masiva-textarea').value.trim();
 
-  if (!text) {
-    alert('Por favor pegá los datos para la carga masiva.');
+  if (!tipo) {
+    alert('Por favor, ingresá el tipo de producto antes de cargar.');
     return;
   }
 
-  if (!tipo) {
-    alert('Por favor ingresá el tipo de producto.');
+  if (!text) {
+    alert('Por favor, pegá los datos para la carga masiva.');
     return;
   }
 
@@ -172,7 +171,7 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
   for (const linea of lineas) {
     const columnas = linea.split(',').map(c => c.trim());
     if (columnas.length < 2) {
-      alert('Formato incorrecto en alguna línea. Debe tener al menos 2 columnas separadas por coma: SKU y Precio');
+      alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
       return;
     }
 
@@ -183,27 +182,28 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
 
     const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
     if (isNaN(precioCompra)) {
-      alert(`Precio compra inválido en línea: ${linea}`);
+      alert(`Precio inválido en la línea: ${linea}`);
       return;
     }
 
     const venta = precioCompra * 2.10;
-    const precioVenta = Math.ceil(venta / 10) * 10; // redondeo hacia la decena superior
-    const precioPromocional = 0;
-    const cantidadPromocion = 0;
-    const fechaIngreso = new Date().toISOString().split('T')[0];
+    const precioVenta = Math.ceil(venta / 10) * 10;
 
-    productos.push({
+    const producto = {
       codigoSKU,
       tipo,
       precioCompra,
       precioVenta,
-      precioPromocional,
-      cantidadPromocion,
-      fechaIngreso,
+      precioPromocional: 0,
+      cantidadPromocion: 0,
+      fechaIngreso: new Date().toISOString().split('T')[0],
       observaciones,
-    });
+    };
+
+    productos.push(producto);
   }
+
+  console.log('Productos listos para guardar:', productos);
   try {
     // Paso 1: leer productos ya en firebase
     const snapshot = await db.ref('marroquineria').once('value');
