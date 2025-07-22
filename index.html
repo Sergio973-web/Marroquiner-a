@@ -306,64 +306,70 @@ for (const linea of lineas) {
   });
 
   function buscarYMostrarProducto() {
-    let texto = skuInput.value.trim().toLowerCase();
-    if (!texto || texto.length < 1) {
-      sugerenciasCont.style.display = 'none';
-      datosProducto.classList.add('hidden');
-      productoActual = null;
-      precioSpan.textContent = '0.00';
-      return;
-    }
+  let texto = skuInput.value.trim().toLowerCase();
+  if (!texto || texto.length < 1) {
+    sugerenciasCont.style.display = 'none';
+    datosProducto.classList.add('hidden');
+    productoActual = null;
+    precioSpan.textContent = '0.00';
+    return;
+  }
 
-    const endText = texto + "\uf8ff";
-    db.ref('marroquineria')
-      .orderByChild('codigoSKU')
-      .startAt(texto)
-      .endAt(endText)
-      .limitToFirst(30)
-      .once('value', snapshot => {
-        if (!snapshot.exists()) {
+  db.ref('marroquineria')
+    .limitToFirst(1000)
+    .once('value', snapshot => {
+      if (!snapshot.exists()) {
+        sugerenciasCont.style.display = 'none';
+        datosProducto.classList.add('hidden');
+        productoActual = null;
+        precioSpan.textContent = '0.00';
+        return;
+      }
+
+      const productosDB = snapshot.val();
+      const arrProd = Object.values(productosDB).filter(prod =>
+        prod.codigoSKU.toLowerCase().includes(texto) ||
+        (prod.tipo && prod.tipo.toLowerCase().includes(texto))
+      );
+
+      if (arrProd.length === 0) {
+        sugerenciasCont.style.display = 'none';
+        return;
+      }
+
+      sugerenciasCont.innerHTML = arrProd.map(prod =>
+        `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
+          data-sku="${prod.codigoSKU}" 
+          data-tipo="${prod.tipo}" 
+          data-precio="${prod.precioVenta}" 
+          data-promocion="${prod.precioPromocional || 0}" 
+          data-cantidad-promo="${prod.cantidadPromocion || 0}">
+          <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
+        </div>`
+      ).join('');
+      
+      sugerenciasCont.style.display = 'block';
+
+      Array.from(sugerenciasCont.children).forEach(div => {
+        div.addEventListener('click', () => {
+          skuInput.value = div.dataset.sku;
+          tipoSpan.textContent = div.dataset.tipo || '';
+          productoActual = {
+            sku: div.dataset.sku,
+            tipo: div.dataset.tipo,
+            precio: parseFloat(div.dataset.precio) || 0,
+            promocion: parseFloat(div.dataset.promocion) || 0,
+            cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
+          };
+          calcularPrecioFinal();
+          datosProducto.classList.remove('hidden');
           sugerenciasCont.style.display = 'none';
-          datosProducto.classList.add('hidden');
-          productoActual = null;
-          precioSpan.textContent = '0.00';
-          return;
-        }
-
-        const productosDB = snapshot.val();
-        const arrProd = Object.values(productosDB);
-
-        sugerenciasCont.innerHTML = arrProd.map(prod =>
-          `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
-            data-sku="${prod.codigoSKU}" 
-            data-tipo="${prod.tipo}" 
-            data-precio="${prod.precioVenta}" 
-            data-promocion="${prod.precioPromocional || 0}" 
-            data-cantidad-promo="${prod.cantidadPromocion || 0}">
-            <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
-          </div>`
-        ).join('');
-        sugerenciasCont.style.display = 'block';
-
-        Array.from(sugerenciasCont.children).forEach(div => {
-          div.addEventListener('click', () => {
-            skuInput.value = div.dataset.sku;
-            tipoSpan.textContent = div.dataset.tipo || '';
-            productoActual = {
-              sku: div.dataset.sku,
-              tipo: div.dataset.tipo,
-              precio: parseFloat(div.dataset.precio) || 0,
-              promocion: parseFloat(div.dataset.promocion) || 0,
-              cantidadPromo: parseInt(div.dataset['cantidad-promo']) || 0
-            };
-            calcularPrecioFinal();
-            datosProducto.classList.remove('hidden');
-            sugerenciasCont.style.display = 'none';
-            skuInput.focus();
-          });
+          skuInput.focus();
         });
       });
-  }
+    });
+}
+
 
   function calcularPrecioFinal() {
   if (!productoActual) return;
