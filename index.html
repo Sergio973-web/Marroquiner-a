@@ -104,7 +104,7 @@
     document.getElementById('scanner-container').classList.add('hidden');
   }
 
-  window.mostrarFormulario = function(tipo) {
+window.mostrarFormulario = function(tipo) {
   const cont = document.getElementById('formulario');
   cont.innerHTML = '';
 
@@ -112,25 +112,10 @@
     cont.innerHTML = `
       <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
       <form id="form-ingreso" class="grid grid-cols-1 gap-4">
-        <!-- formulario normal individual -->
-        <div class="flex items-center space-x-2">
-          <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
-          <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
-        </div>
-        <input id="tipo-ingreso" class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
+        <input id="tipo-producto" class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
         <input id="precio-compra" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
         <input id="precio-venta" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
-        <input id="precio-promocional" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio promocional (opcional)" />
-        <input id="cantidad-promocion" class="border p-2 rounded" type="number" min="0" step="1" placeholder="Cantidad mínima para promoción (opcional)" />
-        <input id="fecha-ingreso" class="border p-2 rounded" type="date" required />
-        <textarea id="observaciones" class="border p-2 rounded" placeholder="Observaciones"></textarea>
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
-
-        <hr class="my-4" />
-
-        <!-- Área para carga masiva -->
-        <h3 class="text-xl font-semibold">Carga masiva de productos</h3>
-        <textarea id="carga-masiva-textarea" class="border p-2 rounded h-40" placeholder="Pegar datos CSV aquí: codigoSKU,tipo,precioCompra,precioPromocional,cantidadPromocion,fechaIngreso,observaciones"></textarea>
+        <textarea id="carga-masiva-textarea" class="border p-2 rounded h-40" placeholder="Pegar datos CSV aquí: codigoSKU,precioCompra,observaciones (opcional)"></textarea>
         <button type="button" id="btn-carga-masiva" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded mt-2">Cargar productos masivamente</button>
       </form>
     `;
@@ -142,120 +127,118 @@
     inputCompra.addEventListener('input', () => {
       const compra = parseFloat(inputCompra.value);
       if (!isNaN(compra)) {
-        const venta = compra * 2.10; // 110% más
-        // Redondear hacia arriba a la decena más próxima
+        const venta = compra * 2.10;
         const ventaRedondeada = Math.ceil(venta / 10) * 10;
-        inputVenta.value = ventaRedondeada.toFixed(0); // Sin decimales
+        inputVenta.value = ventaRedondeada.toFixed(0);
       } else {
         inputVenta.value = '';
       }
     });
 
-document.getElementById('btn-carga-masiva').addEventListener('click', () => {
-  const tipo = document.getElementById('tipo-producto').value.trim();
-  const text = document.getElementById('carga-masiva-textarea').value.trim();
+    // Evento carga masiva - ¡IMPORTANTE: async para usar await!
+    document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+      const tipo = document.getElementById('tipo-producto').value.trim();
+      const text = document.getElementById('carga-masiva-textarea').value.trim();
 
-  if (!tipo) {
-    alert('Por favor, ingresá el tipo de producto antes de cargar.');
-    return;
-  }
-
-  if (!text) {
-    alert('Por favor, pegá los datos para la carga masiva.');
-    return;
-  }
-
-  const lineas = text.split('\n');
-  const productos = [];
-
-  for (const linea of lineas) {
-    const columnas = linea.split(',').map(c => c.trim());
-    if (columnas.length < 2) {
-      alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
-      return;
-    }
-
-    let [codigoSKU, precioCompraStr, observaciones] = columnas;
-    observaciones = observaciones || '';
-
-    codigoSKU = codigoSKU.toLowerCase();
-
-    const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
-    if (isNaN(precioCompra)) {
-      alert(`Precio inválido en la línea: ${linea}`);
-      return;
-    }
-
-    const venta = precioCompra * 2.10;
-    const precioVenta = Math.ceil(venta / 10) * 10;
-
-    const producto = {
-      codigoSKU,
-      tipo,
-      precioCompra,
-      precioVenta,
-      precioPromocional: 0,
-      cantidadPromocion: 0,
-      fechaIngreso: new Date().toISOString().split('T')[0],
-      observaciones,
-    };
-
-    productos.push(producto);
-  }
-  try {
-    // Paso 1: leer productos ya en firebase
-    const snapshot = await db.ref('marroquineria').once('value');
-    const existentes = snapshot.val() || {};
-
-    // Map SKU -> key Firebase
-    const skuMap = {};
-    for (const key in existentes) {
-      const prod = existentes[key];
-      if (prod.codigoSKU) {
-        skuMap[prod.codigoSKU] = key;
+      if (!tipo) {
+        alert('Por favor, ingresá el tipo de producto antes de cargar.');
+        return;
       }
-    }
 
-    // Paso 2: Preparar actualizaciones
-    const updates = {};
-    productos.forEach(prod => {
-      const existingKey = skuMap[prod.codigoSKU];
-      if (existingKey) {
-        const existente = existentes[existingKey];
+      if (!text) {
+        alert('Por favor, pegá los datos para la carga masiva.');
+        return;
+      }
 
-        const actualizacion = {
-          ...existente,
-          codigoSKU: prod.codigoSKU,
-          tipo: prod.tipo,
-          precioCompra: prod.precioCompra,
-          // Solo recalcula precioVenta si cambió precioCompra
-          precioVenta: prod.precioCompra !== existente.precioCompra
-            ? Math.ceil(prod.precioCompra * 2.10 / 10) * 10
-            : existente.precioVenta,
-          precioPromocional: prod.precioPromocional || existente.precioPromocional || 0,
-          cantidadPromocion: prod.cantidadPromocion || existente.cantidadPromocion || 0,
-          fechaIngreso: existente.fechaIngreso || prod.fechaIngreso, // conserva la original
-          observaciones: prod.observaciones || existente.observaciones || ''
+      const lineas = text.split('\n');
+      const productos = [];
+
+      for (const linea of lineas) {
+        const columnas = linea.split(',').map(c => c.trim());
+        if (columnas.length < 2) {
+          alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
+          return;
+        }
+
+        let [codigoSKU, precioCompraStr, observaciones] = columnas;
+        observaciones = observaciones || '';
+
+        codigoSKU = codigoSKU.toLowerCase();
+
+        const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
+        if (isNaN(precioCompra)) {
+          alert(`Precio inválido en la línea: ${linea}`);
+          return;
+        }
+
+        const venta = precioCompra * 2.10;
+        const precioVenta = Math.ceil(venta / 10) * 10;
+
+        const producto = {
+          codigoSKU,
+          tipo,
+          precioCompra,
+          precioVenta,
+          precioPromocional: 0,
+          cantidadPromocion: 0,
+          fechaIngreso: new Date().toISOString().split('T')[0],
+          observaciones,
         };
 
-        updates[`marroquineria/${existingKey}`] = actualizacion;
-      } else {
-        // Crear nuevo producto
-        const newKey = db.ref('marroquineria').push().key;
-        updates[`marroquineria/${newKey}`] = prod;
+        productos.push(producto);
+      }
+
+      try {
+        // Leer productos ya en firebase
+        const snapshot = await db.ref('marroquineria').once('value');
+        const existentes = snapshot.val() || {};
+
+        // Map SKU -> key Firebase
+        const skuMap = {};
+        for (const key in existentes) {
+          const prod = existentes[key];
+          if (prod.codigoSKU) {
+            skuMap[prod.codigoSKU] = key;
+          }
+        }
+
+        // Preparar actualizaciones
+        const updates = {};
+        productos.forEach(prod => {
+          const existingKey = skuMap[prod.codigoSKU];
+          if (existingKey) {
+            const existente = existentes[existingKey];
+            const actualizacion = {
+              ...existente,
+              codigoSKU: prod.codigoSKU,
+              tipo: prod.tipo,
+              precioCompra: prod.precioCompra,
+              precioVenta: prod.precioCompra !== existente.precioCompra
+                ? Math.ceil(prod.precioCompra * 2.10 / 10) * 10
+                : existente.precioVenta,
+              precioPromocional: prod.precioPromocional || existente.precioPromocional || 0,
+              cantidadPromocion: prod.cantidadPromocion || existente.cantidadPromocion || 0,
+              fechaIngreso: existente.fechaIngreso || prod.fechaIngreso,
+              observaciones: prod.observaciones || existente.observaciones || ''
+            };
+            updates[`marroquineria/${existingKey}`] = actualizacion;
+          } else {
+            // Nuevo producto
+            const newKey = db.ref('marroquineria').push().key;
+            updates[`marroquineria/${newKey}`] = prod;
+          }
+        });
+
+        await db.ref().update(updates);
+        alert('Productos cargados/actualizados correctamente.');
+        document.getElementById('carga-masiva-textarea').value = '';
+
+      } catch (error) {
+        alert('Error en la carga masiva: ' + error.message);
       }
     });
 
-    // Paso 3: Ejecutar update masiva
-    await db.ref().update(updates);
-    alert('Productos cargados/actualizados correctamente.');
-    document.getElementById('carga-masiva-textarea').value = '';
-
-  } catch (error) {
-    alert('Error en la carga masiva: ' + error.message);
-  }
-});
- else if (tipo === 'venta') {
+  } else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
