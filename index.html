@@ -22,8 +22,12 @@
       <button onclick="mostrarFormulario('ingreso')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-lg font-semibold">Ingreso Producto</button>
       <button onclick="mostrarFormulario('venta')" class="bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-semibold">Venta Producto</button>
       <button onclick="mostrarFormulario('consulta')" class="bg-gray-700 hover:bg-gray-800 text-white py-4 rounded-xl text-lg font-semibold col-span-2">Consultas</button>
-    </div>
 
+      <button id="btn-ver-ventas" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded mt-4">
+        Ver Ventas
+      </button>
+    </div>
+    <div id="contenedor-principal"></div>
     <div id="formulario" class="mt-4"></div>
   </div>
 
@@ -833,6 +837,93 @@ Total: $${venta.totalVenta}
 
   const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
+}
+// Obtener referencia al contenedor donde mostrar el formulario y resultados
+const cont = document.getElementById('contenedor-principal');
+
+document.getElementById('btn-ver-ventas').addEventListener('click', () => {
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-blue-700">Buscar Ventas</h2>
+    <form id="form-buscar-ventas" class="space-y-4">
+      <label>Fecha:
+        <input type="date" id="fecha-venta" class="border p-2 rounded w-full" />
+      </label>
+      <label>Cliente:
+        <input type="text" id="cliente-venta" class="border p-2 rounded w-full" placeholder="Nombre o DNI" />
+      </label>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-full">Buscar</button>
+    </form>
+    <div id="resultados-ventas" class="mt-4"></div>
+  `;
+
+  document.getElementById('form-buscar-ventas').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fecha = document.getElementById('fecha-venta').value;
+    const cliente = document.getElementById('cliente-venta').value.trim().toLowerCase();
+    await buscarVentas(fecha, cliente);
+  });
+});
+
+async function buscarVentas(fecha, cliente) {
+  const db = firebase.database();  // Si usás modular Firebase: const db = getDatabase();
+  const refVentas = db.ref('ventas');
+
+  try {
+    const snapshot = await refVentas.once('value');
+    const ventas = snapshot.val();
+
+    let ventasFiltradas = [];
+
+    for (const ventaId in ventas) {
+      const venta = ventas[ventaId];
+
+      if (fecha && venta.fecha !== fecha) continue;
+
+      if (cliente) {
+        const clienteStr = ((venta.cliente || '') + '' + (venta.dni || '')).toLowerCase();
+        if (!clienteStr.includes(cliente)) continue;
+      }
+
+      ventasFiltradas.push({ id: ventaId, ...venta });
+    }
+
+    mostrarVentas(ventasFiltradas);
+
+  } catch (error) {
+    console.error('Error buscando ventas:', error);
+    document.getElementById('resultados-ventas').innerHTML = `<p class="text-red-600">Error al buscar ventas.</p>`;
+  }
+}
+
+function mostrarVentas(ventas) {
+  const contenedor = document.getElementById('resultados-ventas');
+  if (!ventas.length) {
+    contenedor.innerHTML = '<p>No se encontraron ventas con esos filtros.</p>';
+    return;
+  }
+
+  let html = '<ul class="space-y-2">';
+  ventas.forEach(venta => {
+    // Calcular total de la venta
+    let totalVenta = 0;
+    if (venta.productos) {
+      totalVenta = venta.productos.reduce((acum, p) => acum + (p.cantidad * p.precioUnitario), 0);
+    }
+
+    html += `<li class="border p-2 rounded">
+      <strong>Fecha:</strong> ${venta.fecha} <br />
+      <strong>Cliente:</strong> ${venta.cliente || ''} <br />
+      <strong>DNI:</strong> ${venta.dni || ''} <br />
+      <strong>Productos:</strong>
+      <ul class="ml-4 list-disc">
+        ${venta.productos ? venta.productos.map(p => `<li>${p.sku} - Cantidad: ${p.cantidad} - Precio unitario: $${p.precioUnitario}</li>`).join('') : 'No hay productos'}
+      </ul>
+      <strong>Total Venta:</strong> $${totalVenta.toFixed(2)}
+    </li>`;
+  });
+  html += '</ul>';
+
+  contenedor.innerHTML = html;
 }
 
 </script>
