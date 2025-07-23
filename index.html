@@ -506,26 +506,33 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     });
   });
 } else if (tipo === 'consulta') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
-      <label class="block mb-4">
-        <span class="text-gray-700">Seleccionar tipo:</span>
-        <select id="tipo-consulta" class="border p-2 rounded w-full">
-          <option value="marroquineria">Productos</option>
-          <option value="ventas_marroquineria">Ventas</option>
-        </select>
-      </label>
-      <div id="tabla-consultas" class="overflow-x-auto mt-4"></div>
-    `;
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
+    <label class="block mb-4">
+      <span class="text-gray-700">Seleccionar tipo:</span>
+      <select id="tipo-consulta" class="border p-2 rounded w-full">
+        <option value="marroquineria">Productos</option>
+        <option value="ventas_marroquineria">Ventas</option>
+      </select>
+    </label>
 
-    document.getElementById('tipo-consulta').addEventListener('change', cargarConsulta);
-    cargarConsulta();
-  }
-};
+    <label class="block mb-4">
+      <span class="text-gray-700">Buscar por texto:</span>
+      <input id="buscador" type="text" class="border p-2 rounded w-full" placeholder="Buscar...">
+    </label>
 
- function cargarConsulta() {
+    <div id="tabla-consultas" class="overflow-x-auto mt-4"></div>
+  `;
+
+  document.getElementById('tipo-consulta').addEventListener('change', cargarConsulta);
+  document.getElementById('buscador').addEventListener('input', cargarConsulta);
+  cargarConsulta();
+}
+
+function cargarConsulta() {
   const tipo = document.getElementById('tipo-consulta').value;
   const tablaCont = document.getElementById('tabla-consultas');
+  const filtro = (document.getElementById('buscador')?.value || '').toLowerCase();
 
   db.ref(tipo).once('value', snapshot => {
     if (!snapshot.exists()) {
@@ -534,15 +541,10 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
     }
 
     const datos = snapshot.val();
-    const entradas = Object.entries(datos);
-
-    // Ordenar entradas por codigoSKU (alfabéticamente)
-    entradas.sort((a, b) => {
+    const entradas = Object.entries(datos).sort((a, b) => {
       const codigoA = (a[1].codigoSKU || '').toString().toLowerCase();
       const codigoB = (b[1].codigoSKU || '').toString().toLowerCase();
-      if (codigoA < codigoB) return -1;
-      if (codigoA > codigoB) return 1;
-      return 0;
+      return codigoA.localeCompare(codigoB);
     });
 
     const claves = Object.keys(entradas[0][1] || {});
@@ -555,15 +557,20 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
         </tr>
       </thead>
       <tbody>
-        ${entradas.map(([key, item]) => `
-          <tr>
-            ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
-            <td class="px-4 py-2 border text-center">
-              <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
-              <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
-            </td>
-          </tr>
-        `).join('')}
+        ${entradas
+          .filter(([_, item]) => {
+            const texto = JSON.stringify(item).toLowerCase();
+            return texto.includes(filtro);
+          })
+          .map(([key, item]) => `
+            <tr>
+              ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
+              <td class="px-4 py-2 border text-center">
+                <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
+                <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
+              </td>
+            </tr>
+          `).join('')}
       </tbody>
     </table>`;
 
