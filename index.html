@@ -902,7 +902,8 @@ function mostrarVentas(ventas) {
     return;
   }
 
-  let html = '<ul class="space-y-2">';
+  let html = '';
+
   ventas.forEach(venta => {
     // Calcular total de la venta
     let totalVenta = 0;
@@ -910,18 +911,45 @@ function mostrarVentas(ventas) {
       totalVenta = venta.productos.reduce((acum, p) => acum + (p.cantidad * p.precioUnitario), 0);
     }
 
-    html += `<li class="border p-2 rounded">
-      <strong>Fecha:</strong> ${venta.fecha} <br />
-      <strong>Cliente:</strong> ${venta.cliente || ''} <br />
-      <strong>DNI:</strong> ${venta.dni || ''} <br />
-      <strong>Productos:</strong>
-      <ul class="ml-4 list-disc">
-        ${venta.productos ? venta.productos.map(p => `<li>${p.sku} - Cantidad: ${p.cantidad} - Precio unitario: $${p.precioUnitario}</li>`).join('') : 'No hay productos'}
-      </ul>
-      <strong>Total Venta:</strong> $${totalVenta.toFixed(2)}
-    </li>`;
+    html += `
+      <h3 class="mt-6 mb-2 font-semibold text-lg">Venta: ${venta.id}</h3>
+      <p><strong>Fecha:</strong> ${venta.fecha}</p>
+      <p><strong>Cliente:</strong> ${venta.cliente || ''} &nbsp;&nbsp; <strong>DNI:</strong> ${venta.dni || ''}</p>
+
+      <table class="min-w-full border border-gray-300 rounded-md overflow-hidden mb-4">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border border-gray-300 px-4 py-2 text-left">SKU</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Cantidad</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Precio Unitario</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${venta.productos && venta.productos.length > 0
+            ? venta.productos.map(p => {
+                const subtotal = p.cantidad * p.precioUnitario;
+                return `
+                  <tr>
+                    <td class="border border-gray-300 px-4 py-2">${p.sku}</td>
+                    <td class="border border-gray-300 px-4 py-2">${p.cantidad}</td>
+                    <td class="border border-gray-300 px-4 py-2">$${p.precioUnitario.toFixed(2)}</td>
+                    <td class="border border-gray-300 px-4 py-2">$${subtotal.toFixed(2)}</td>
+                  </tr>
+                `;
+              }).join('')
+            : `<tr><td colspan="4" class="border border-gray-300 px-4 py-2 text-center">No hay productos</td></tr>`
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="border border-gray-300 px-4 py-2 font-semibold text-right">Total Venta:</td>
+            <td class="border border-gray-300 px-4 py-2 font-semibold">$${totalVenta.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
   });
-  html += '</ul>';
 
   contenedor.innerHTML = html;
 }
