@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Extractor de productos</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; background: #f9f9f9; }
+    textarea { width: 100%; height: 280px; font-family: monospace; padding: 1rem; }
+    button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-weight: bold; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    pre { background: white; padding: 1rem; margin-top: 2rem; border: 1px solid #ccc; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<h1>📥 Extraer productos del pedido</h1>
+<textarea id="entrada" placeholder="Pegá el texto del pedido..."></textarea>
+<button onclick="extraer()">Extraer</button>
+<pre id="salida"></pre>
+
+<script>
+function extraer() {
+  let texto = document.getElementById("entrada").value;
+  let lineas = texto.split('\n').map(l => l.trim()).filter(l => l !== '');
+  let resultado = [];
+
+  let descripcionPadre = null;
+  let productosDetectados = new Set();
+
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i];
+
+    // 1. Saltar totales tipo: "$13.000,00"
+    if (/^\$[\d.,]+$/.test(linea)) continue;
+
+    // 2. Línea tipo "6 ⨯ $1.890,00 = $11.340,00"
+    const matchPrecio = linea.match(/\d+\s*[x⨯]\s*\$([\d.,]+)/i);
+    if (matchPrecio && descripcionPadre) {
+      const precioUnitario = matchPrecio[1].replace(/\./g, '').replace(',', '.');
+      const clave = `${descripcionPadre},${precioUnitario}`;
+      if (!productosDetectados.has(clave)) {
+        resultado.push(clave);
+        productosDetectados.add(clave);
+      }
+      // NO limpiamos descripcionPadre aún, puede haber más líneas asociadas
+      continue;
+    }
+
+    // 3. Línea ya limpia: "producto,precio"
+    const matchDirecto = linea.match(/^(.+),([\d.]+)$/);
+    if (matchDirecto) {
+      const clave = `${matchDirecto[1]},${matchDirecto[2]}`;
+      if (!productosDetectados.has(clave)) {
+        resultado.push(clave);
+        productosDetectados.add(clave);
+      }
+      descripcionPadre = matchDirecto[1]; // heredamos para próximas líneas
+      continue;
+    }
+
+    // 4. Línea con cantidad + descripción, ejemplo: "12 carteles madera"
+    const matchConCantidad = linea.match(/^\d+\s+(.+)/);
+    if (matchConCantidad) {
+      descripcionPadre = matchConCantidad[1];
+      continue;
+    }
+
+    // 5. Cualquier otra línea válida como nombre
+    if (!linea.startsWith('$') && !linea.match(/\d+\s*[x⨯]\s*\$/)) {
+      descripcionPadre = linea;
+    }
+  }
+
+  // Mostrar limpio
+  document.getElementById("salida").textContent = resultado.join('\n');
+}
+
+// Función opcional: recalcular precio unitario si el SKU dice "x 24"
+function calcularPrecioUnitario(lineas) {
+  return lineas.map(linea => {
+    const [skuCompleto, precioStr] = linea.split(',');
+    let precio = parseFloat(precioStr);
+    const cantidadMatch = skuCompleto.match(/x\s*(\d+)/i);
+    if (cantidadMatch) {
+      const cantidad = parseInt(cantidadMatch[1], 10);
+      if (cantidad > 0) {
+        const precioUnitario = precio / cantidad;
+        return `${skuCompleto},${precioUnitario.toFixed(2)}`;
+      }
+    }
+    return linea;
+  });
+}
+</script>
+
+</body>
+</html>
