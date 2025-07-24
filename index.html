@@ -385,8 +385,9 @@ document.getElementById('btn-carga-masiva').addEventListener('click', async () =
 
       const productosDB = snapshot.val();
       const arrProd = Object.values(productosDB).filter(prod =>
-        prod.codigoSKU.toLowerCase().includes(texto) ||
-        (prod.tipo && prod.tipo.toLowerCase().includes(texto))
+        (prod.codigoSKU && prod.codigoSKU.toLowerCase().includes(texto)) ||
+        (prod.tipo && prod.tipo.toLowerCase().includes(texto)) ||
+        (prod.observacion && prod.observacion.toLowerCase().includes(texto))
       );
 
       if (arrProd.length === 0) {
