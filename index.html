@@ -182,11 +182,15 @@ window.mostrarFormulario = function(tipo) {
           }
     
           datalist.innerHTML = "";
-          tiposUnicos.forEach(tipo => {
-            const option = document.createElement("option");
-            option.value = tipo;
-            datalist.appendChild(option);
-          });
+
+          Array.from(tiposUnicos)
+            .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+            .forEach(tipo => {
+              const option = document.createElement("option");
+              option.value = tipo;
+              datalist.appendChild(option);
+            });
+
         });
     
         // Cálculo automático del precio de venta
