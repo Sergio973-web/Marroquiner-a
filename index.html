@@ -3,28 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gestión Marroquinería</title>
+  <title>Sistema de Gestión Comercial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <!-- Librería para escaneo -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
   <div class="w-full max-w-3xl p-6 bg-white rounded-2xl shadow-lg">
-    <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-2 cursor-pointer" onclick="location.reload()">Gestión Marroquinería</h1>
-    <p class="text-center text-gray-600 text-lg mb-6">Sistema de Gestión Comercial - Marroquinería</p>
+  <h1 class="text-4xl font-extrabold text-center text-indigo-700 mb-6 cursor-pointer" onclick="location.reload()">
+    Sistema de Gestión Comercial
+  </h1>
 
-    <div class="grid grid-cols-2 gap-6 mb-8">
-      <button onclick="mostrarFormulario('ingreso')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-lg font-semibold">Ingreso Producto</button>
-      <button onclick="mostrarFormulario('venta')" class="bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl text-lg font-semibold">Venta Producto</button>
-      <button onclick="mostrarFormulario('consulta')" class="bg-gray-700 hover:bg-gray-800 text-white py-4 rounded-xl text-lg font-semibold col-span-2">Consultas</button>
-    </div>
-
-    <div id="formulario" class="mt-4"></div>
+  <div class="grid grid-cols-2 gap-6 mb-8">
+    <button
+      onclick="mostrarFormulario('ingreso')"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl text-lg font-semibold transition-colors duration-300 shadow-md"
+    >
+      Ingreso Producto
+    </button>
+    <button
+      onclick="mostrarFormulario('venta')"
+      class="bg-green-600 hover:bg-green-700 text-white py-5 rounded-2xl text-lg font-semibold transition-colors duration-300 shadow-md"
+    >
+      Venta Producto
+    </button>
+    <button
+      onclick="mostrarFormulario('consulta')"
+      class="bg-gray-700 hover:bg-gray-800 text-white py-5 rounded-2xl text-lg font-semibold transition-colors duration-300 shadow-md"
+    >
+      Consultas
+    </button>
+    <button
+      id="btn-ver-ventas"
+      class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-lg font-semibold transition-colors duration-300 shadow-md"
+    >
+      Ver Ventas
+    </button>
   </div>
+
+  <div id="contenedor-principal"></div>
+  <div id="formulario" class="mt-4"></div>
+</div>
+
 
   <!-- Contenedor para el escáner (oculto hasta activar) -->
   <div id="scanner-container" class="fixed inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center p-4 hidden z-50">
@@ -46,6 +72,8 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   
+  let carrito = [];
+
   function parseDecimal(valor) {
     if (valor == null) return 0;
     valor = String(valor).trim().replace(',', '.');
@@ -94,8 +122,6 @@
     document.getElementById('scanner-container').classList.add('hidden');
   });
 }
-
-
   function cerrarScanner() {
     if(html5QrcodeScanner){
       html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(() => {});
@@ -103,30 +129,198 @@
     document.getElementById('scanner-container').classList.add('hidden');
   }
 
-  window.mostrarFormulario = function(tipo) {
+window.mostrarFormulario = function(tipo) {
   const cont = document.getElementById('formulario');
   cont.innerHTML = '';
 
   if (tipo === 'ingreso') {
-  cont.innerHTML = `
-    <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
-    <form id="form-ingreso" class="grid grid-cols-1 gap-4">
-      <div class="flex items-center space-x-2">
-        <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
-        <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
-      </div>
-      <input class="border p-2 rounded" type="text" placeholder="Tipo (Ej: Cartera, Billetera)" required />
-      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
-      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
-      <input class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio promocional (opcional)" id="precio-promocional" />
-      <input class="border p-2 rounded" type="number" min="0" step="1" placeholder="Cantidad mínima para promoción (opcional)" id="cantidad-promocion" />
-      <input class="border p-2 rounded" type="date" required />
-      <textarea class="border p-2 rounded" placeholder="Observaciones"></textarea>
-      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
-    </form>
-  `;
-} 
- else if (tipo === 'venta') {
+      cont.innerHTML = `
+        <h2 class="text-2xl font-bold mb-4 text-indigo-700">Ingreso de Producto</h2>
+        <form id="form-ingreso" class="grid grid-cols-1 gap-4">
+          <div class="flex items-center space-x-2">
+            <input id="sku-ingreso" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU" required />
+            <button type="button" onclick="abrirScanner('sku-ingreso')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded">Escanear Código</button>
+          </div>
+    
+          <input id="tipo-ingreso" class="border p-2 rounded" list="lista-proveedores" placeholder="Tipo / Proveedor (Ej: Ik, Mimo, otro)" required />
+          <datalist id="lista-proveedores"></datalist>
+    
+          <input id="precio-compra" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de compra" required />
+          <label for="multiplicador">Multiplicador:</label>
+          <input type="number" step="0.01" id="multiplicador" placeholder="2.1" class="border p-1 rounded w-20">
+          <input id="precio-venta" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio de venta" required />
+          <input id="precio-promocional" class="border p-2 rounded" type="number" min="0" step="0.01" placeholder="Precio promocional (opcional)" />
+          <input id="cantidad-promocion" class="border p-2 rounded" type="number" min="0" step="1" placeholder="Cantidad mínima para promoción (opcional)" />
+          <input id="fecha-ingreso" class="border p-2 rounded" type="date" required />
+          <textarea id="observaciones" class="border p-2 rounded" placeholder="Observaciones"></textarea>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">Guardar Producto</button>
+    
+          <hr class="my-4" />
+          <h3 class="text-xl font-semibold">Carga masiva de productos</h3>
+          <textarea id="carga-masiva-textarea" class="border p-2 rounded h-40" placeholder="Pegar datos CSV aquí: codigoSKU Y Precio Compra Y muy Importante completar Text Box Tipo"></textarea>
+          <button type="button" id="btn-carga-masiva" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded mt-2">Cargar productos masivamente</button>
+        </form>
+      `;
+    
+      // Esperamos que el DOM de los inputs se haya renderizado
+      setTimeout(() => {
+        const inputCompra = document.getElementById('precio-compra');
+        const inputVenta = document.getElementById('precio-venta');
+        const inputMultiplicador = document.getElementById('multiplicador');
+        const datalist = document.getElementById("lista-proveedores");
+    
+        // Cargar tipos/proveedores únicos desde Firebase
+        db.ref("marroquineria").once("value").then(snapshot => {
+          const datos = snapshot.val();
+          const tiposUnicos = new Set();
+    
+          for (const key in datos) {
+            const producto = datos[key];
+            if (producto.tipo) {
+              tiposUnicos.add(producto.tipo.trim());
+            }
+          }
+    
+          datalist.innerHTML = "";
+
+          Array.from(tiposUnicos)
+            .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+            .forEach(tipo => {
+              const option = document.createElement("option");
+              option.value = tipo;
+              datalist.appendChild(option);
+            });
+
+        });
+    
+        // Cálculo automático del precio de venta
+        inputCompra.addEventListener('input', () => {
+          const compra = parseFloat(inputCompra.value);
+          let multiplicador = parseFloat(inputMultiplicador.value);
+    
+          if (isNaN(multiplicador) || multiplicador <= 0) multiplicador = 2.1;
+    
+          if (!isNaN(compra)) {
+            const venta = compra * multiplicador;
+            const ventaRedondeada = Math.ceil(venta / 10) * 10;
+            inputVenta.value = ventaRedondeada.toFixed(0);
+          } else {
+            inputVenta.value = '';
+          }
+        });
+      }, 0);
+
+    // Evento carga masiva - ¡IMPORTANTE: async para usar await!
+document.getElementById('btn-carga-masiva').addEventListener('click', async () => {
+  const tipo = document.getElementById('tipo-ingreso').value.trim();
+  const text = document.getElementById('carga-masiva-textarea').value.trim();
+  let multiplicador = parseFloat(document.getElementById('multiplicador').value);
+
+  // Si el multiplicador está vacío o es inválido, usar 2.1 por defecto
+  if (isNaN(multiplicador) || multiplicador <= 0) {
+    multiplicador = 2.1;
+  }
+
+  if (!tipo) {
+    alert('Por favor, ingresá el tipo de producto antes de cargar.');
+    return;
+  }
+
+  if (!text) {
+    alert('Por favor, pegá los datos para la carga masiva.');
+    return;
+  }
+
+  const lineas = text.split('\n');
+  const productos = [];
+
+  for (const linea of lineas) {
+    const columnas = linea.split(',').map(c => c.trim());
+    if (columnas.length < 2) {
+      alert('Formato incorrecto. Cada línea debe tener al menos SKU y Precio separados por coma.');
+      return;
+    }
+
+    let [codigoSKU, precioCompraStr, observaciones] = columnas;
+    observaciones = observaciones || '';
+
+    codigoSKU = codigoSKU.toLowerCase();
+
+    const precioCompra = parseFloat(precioCompraStr.replace(/\$/g, '').replace(',', '.'));
+    if (isNaN(precioCompra)) {
+      alert(`Precio inválido en la línea: ${linea}`);
+      return;
+    }
+
+    // Cálculo con el multiplicador
+    const venta = precioCompra * multiplicador;
+    const precioVenta = Math.ceil(venta / 10) * 10;
+
+    const producto = {
+      codigoSKU,
+      tipo,
+      precioCompra,
+      precioVenta,
+      precioPromocional: 0,
+      cantidadPromocion: 0,
+      fechaIngreso: new Date().toISOString().split('T')[0],
+      observaciones,
+    };
+
+    productos.push(producto);
+  }
+
+      try {
+        // Leer productos ya en firebase
+        const snapshot = await db.ref('marroquineria').once('value');
+        const existentes = snapshot.val() || {};
+
+        // Map SKU -> key Firebase
+        const skuMap = {};
+        for (const key in existentes) {
+          const prod = existentes[key];
+          if (prod.codigoSKU) {
+            skuMap[prod.codigoSKU] = key;
+          }
+        }
+
+        // Preparar actualizaciones
+        const updates = {};
+        productos.forEach(prod => {
+          const existingKey = skuMap[prod.codigoSKU];
+          if (existingKey) {
+            const existente = existentes[existingKey];
+            const actualizacion = {
+              ...existente,
+              codigoSKU: prod.codigoSKU,
+              tipo: prod.tipo,
+              precioCompra: prod.precioCompra,
+              precioVenta: prod.precioCompra !== existente.precioCompra
+                ? Math.ceil(prod.precioCompra * 2.10 / 10) * 10
+                : existente.precioVenta,
+              precioPromocional: prod.precioPromocional || existente.precioPromocional || 0,
+              cantidadPromocion: prod.cantidadPromocion || existente.cantidadPromocion || 0,
+              fechaIngreso: existente.fechaIngreso || prod.fechaIngreso,
+              observaciones: prod.observaciones || existente.observaciones || ''
+            };
+            updates[`marroquineria/${existingKey}`] = actualizacion;
+          } else {
+            // Nuevo producto
+            const newKey = db.ref('marroquineria').push().key;
+            updates[`marroquineria/${newKey}`] = prod;
+          }
+        });
+
+        await db.ref().update(updates);
+        alert('Productos cargados/actualizados correctamente.');
+        document.getElementById('carga-masiva-textarea').value = '';
+
+      } catch (error) {
+        alert('Error en la carga masiva: ' + error.message);
+      }
+    });
+
+  } else if (tipo === 'venta') {
   cont.innerHTML = `
     <h2 class="text-2xl font-bold mb-4 text-green-700">Registrar Venta</h2>
     <form id="form-venta" class="grid grid-cols-1 gap-4">
@@ -134,81 +328,99 @@
       <input id="cliente" class="border p-2 rounded" type="text" placeholder="Nombre y Apellido Cliente" />
       <input id="dni" class="border p-2 rounded" type="text" placeholder="DNI Cliente" />
 
-      <div class="relative flex items-center space-x-2">
+      <div class="relative w-full">
+      <div class="flex items-center space-x-2">
         <input id="sku-buscar" autocomplete="off" class="border p-2 rounded flex-grow" type="text" placeholder="Código SKU Producto" />
         <button type="button" onclick="abrirScanner('sku-buscar')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Escanear Código</button>
       </div>
       <div id="sugerencias-sku" class="absolute bg-white border border-gray-300 rounded w-full max-h-40 overflow-auto z-50 mt-1" style="display:none;"></div>
-
+    </div>
+      
       <div id="datos-producto" class="bg-gray-100 p-4 rounded hidden">
         <p><strong>Tipo:</strong> <span id="venta-tipo"></span></p>
-        <p><strong>Precio aplicado:</strong> $<span id="venta-precio"></span></p>
+        <p><strong>Precio aplicado:</strong> $<span id="venta-precio">0</span></p>
         <label>Cantidad:
           <input id="venta-cantidad" type="number" value="1" min="1" class="border p-2 rounded w-full" />
         </label>
       </div>
 
-      <p class="text-xl font-bold">Precio final: $<span id="precio-final">0</span></p>
+      <button type="button" id="btn-agregar-carrito" class="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
+        Agregar al Carrito
+      </button>
+
+      <table id="tabla-carrito" class="w-full mt-4 text-sm border-collapse hidden">
+        <thead>
+          <tr class="bg-gray-200 text-left">
+            <th class="border px-2 py-1">SKU</th>
+            <th class="border px-2 py-1">Tipo</th>
+            <th class="border px-2 py-1">Cantidad</th>
+            <th class="border px-2 py-1">Precio</th>
+            <th class="border px-2 py-1">Total</th>
+            <th class="border px-2 py-1">Eliminar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <p class="text-xl font-bold mt-4">Precio total: $<span id="precio-final">0</span></p>
 
       <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded">Registrar Venta</button>
     </form>
   `;
 
   // Variables
-const form = document.getElementById('form-venta');
-const skuInput = document.getElementById('sku-buscar');
-const sugerenciasCont = document.getElementById('sugerencias-sku');
-const precioSpan = document.getElementById('venta-precio');
-const tipoSpan = document.getElementById('venta-tipo');
-const finalSpan = document.getElementById('precio-final');
-const cantidadInput = document.getElementById('venta-cantidad');
-const datosProducto = document.getElementById('datos-producto');
+  const form = document.getElementById('form-venta');
+  const skuInput = document.getElementById('sku-buscar');
+  const sugerenciasCont = document.getElementById('sugerencias-sku');
+  const precioSpan = document.getElementById('venta-precio');
+  const tipoSpan = document.getElementById('venta-tipo');
+  const finalSpan = document.getElementById('precio-final');
+  const cantidadInput = document.getElementById('venta-cantidad');
+  const datosProducto = document.getElementById('datos-producto');
+  const btnAgregar = document.getElementById('btn-agregar-carrito');
+  const tablaCarrito = document.getElementById('tabla-carrito');
+  const cuerpoTabla = tablaCarrito.querySelector('tbody');
 
-let productoActual = null;
+  let productoActual = null;
+  
+  let ultimoTextoBuscado = '';
 
+  skuInput.addEventListener('input', () => {
+    ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
+    buscarYMostrarProducto();
+  });
 
-// Evento para buscar mientras escribe
-skuInput.addEventListener('input', () => {
-  ultimoTextoBuscado = skuInput.value.trim().toLowerCase();
-  buscarYMostrarProducto();
-});
-
-let ultimoTextoBuscado = '';
-
-function buscarYMostrarProducto() {
+  function buscarYMostrarProducto() {
   let texto = skuInput.value.trim().toLowerCase();
-
   if (!texto || texto.length < 1) {
     sugerenciasCont.style.display = 'none';
     datosProducto.classList.add('hidden');
     productoActual = null;
     precioSpan.textContent = '0.00';
-    finalSpan.textContent = '0.00';
     return;
   }
 
-  
-
-  const endText = texto + "\uf8ff";
-
   db.ref('marroquineria')
-    .orderByChild('codigoSKU')
-    .startAt(texto)
-    .endAt(endText)
-    .limitToFirst(30)
     .once('value', snapshot => {
-      
       if (!snapshot.exists()) {
         sugerenciasCont.style.display = 'none';
         datosProducto.classList.add('hidden');
         productoActual = null;
         precioSpan.textContent = '0.00';
-        finalSpan.textContent = '0.00';
         return;
       }
 
       const productosDB = snapshot.val();
-      const arrProd = Object.values(productosDB);
+      const arrProd = Object.values(productosDB).filter(prod =>
+        (prod.codigoSKU && prod.codigoSKU.toLowerCase().includes(texto)) ||
+        (prod.tipo && prod.tipo.toLowerCase().includes(texto)) ||
+        (prod.observaciones && prod.observaciones.toLowerCase().includes(texto))
+      );
+
+      if (arrProd.length === 0) {
+        sugerenciasCont.style.display = 'none';
+        return;
+      }
 
       sugerenciasCont.innerHTML = arrProd.map(prod =>
         `<div class="cursor-pointer px-3 py-2 hover:bg-green-100 border-b border-gray-200" 
@@ -216,13 +428,13 @@ function buscarYMostrarProducto() {
           data-tipo="${prod.tipo}" 
           data-precio="${prod.precioVenta}" 
           data-promocion="${prod.precioPromocional || 0}" 
-          data-cantidad-promo="${prod.cantidadPromo || 0}">
+          data-cantidad-promo="${prod.cantidadPromocion || 0}">
           <strong>${prod.codigoSKU}</strong> — ${prod.tipo} — $${parseFloat(prod.precioVenta).toFixed(2)}
         </div>`
       ).join('');
+      
       sugerenciasCont.style.display = 'block';
 
-      // Eventos click
       Array.from(sugerenciasCont.children).forEach(div => {
         div.addEventListener('click', () => {
           skuInput.value = div.dataset.sku;
@@ -244,72 +456,97 @@ function buscarYMostrarProducto() {
 }
 
 
-function calcularPrecioFinal() {
+  function calcularPrecioFinal() {
   if (!productoActual) return;
-  const cantidad = parseInt(cantidadInput?.value) || 1;
-  const promo = productoActual.promocion;
-  const cantPromo = productoActual.cantidadPromo;
-
-  let final;
-  if (promo > 0 && cantidad >= cantPromo) {
-    final = promo * cantidad;
-  } else {
-    final = productoActual.precio * cantidad;
+  const cantidad = parseInt(cantidadInput.value) || 1;
+  let precioAplicado = productoActual.precio;
+  if (productoActual.promocion > 0 && cantidad >= productoActual.cantidadPromocion) {
+    precioAplicado = productoActual.promocion;
   }
-  finalSpan.textContent = final.toFixed(2);
+  precioSpan.textContent = precioAplicado.toFixed(2);
 }
 
 
   cantidadInput.addEventListener('input', calcularPrecioFinal);
 
-  function calcularPrecioFinal() {
-    if (!productoActual) return;
-
-    const cantidad = parseInt(cantidadInput.value) || 1;
-    let precioAplicado = productoActual.precio;
-
-    if (productoActual.promocion > 0 && cantidad >= productoActual.cantidadPromo) {
-      precioAplicado = productoActual.promocion;
+  btnAgregar.addEventListener('click', () => {
+    if (!productoActual) {
+      alert('Seleccioná un producto válido.');
+      return;
     }
 
-    precioSpan.textContent = precioAplicado.toFixed(2);
-    finalSpan.textContent = (precioAplicado * cantidad).toFixed(2);
+    const cantidad = parseInt(cantidadInput.value) || 1;
+    const promo = productoActual.promocion;
+    const cantPromo = productoActual.cantidadPromo;
+    const precioUnitario = (promo > 0 && cantidad >= cantPromo) ? promo : productoActual.precio;
+    const total = precioUnitario * cantidad;
+
+    carrito.push({
+      sku: productoActual.sku,
+      tipo: productoActual.tipo,
+      cantidad,
+      precioUnitario,
+      total
+    });
+
+    actualizarTablaCarrito();
+    limpiarCamposProducto();
+  });
+
+  function actualizarTablaCarrito() {
+    cuerpoTabla.innerHTML = '';
+    let totalFinal = 0;
+
+    carrito.forEach((item, index) => {
+      totalFinal += item.total;
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td class="border px-2 py-1">${item.sku}</td>
+        <td class="border px-2 py-1">${item.tipo}</td>
+        <td class="border px-2 py-1">${item.cantidad}</td>
+        <td class="border px-2 py-1">$${item.precioUnitario.toFixed(2)}</td>
+        <td class="border px-2 py-1">$${item.total.toFixed(2)}</td>
+        <td class="border px-2 py-1 text-center">
+          <button class="text-red-600" onclick="eliminarDelCarrito(${index})">✖</button>
+        </td>
+      `;
+      cuerpoTabla.appendChild(fila);
+    });
+
+    finalSpan.textContent = totalFinal.toFixed(2);
+    if (carrito.length > 0) tablaCarrito.classList.remove('hidden');
+    else tablaCarrito.classList.add('hidden');
   }
 
-  function mostrarDatosProducto(producto) {
-    productoActual = producto;
-    tipoSpan.textContent = producto.tipo || '';
-    precioSpan.textContent = parseFloat(producto.precioVenta || producto.precio || 0).toFixed(2);
-    calcularPrecioFinal();
-    datosProducto.classList.remove('hidden');
+  window.eliminarDelCarrito = function (index) {
+    carrito.splice(index, 1);
+    actualizarTablaCarrito();
+  }
+
+  function limpiarCamposProducto() {
+    skuInput.value = '';
+    cantidadInput.value = 1;
+    datosProducto.classList.add('hidden');
+    productoActual = null;
   }
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
+    if (carrito.length === 0) {
+      alert('El carrito está vacío.');
+      return;
+    }
+
     const fecha = document.getElementById('fecha').value || new Date().toISOString().split('T')[0];
     const cliente = document.getElementById('cliente').value.trim();
     const dni = document.getElementById('dni').value.trim();
-    const sku = skuInput.value.trim();
-    const tipo = tipoSpan.textContent.trim();
-    const precio = parseFloat(precioSpan.textContent) || 0;
-    const total = parseFloat(finalSpan.textContent) || 0;
-    const cantidad = parseInt(cantidadInput.value) || 1;
-
-    if (!sku || !tipo || precio === 0) {
-      alert('Debe seleccionar un producto válido.');
-      return;
-    }
 
     const venta = {
       fecha,
       cliente,
       dni,
-      sku,
-      tipo,
-      precioUnitario: precio,
-      total,
-      cantidad
+      productos: carrito
     };
 
     db.ref('ventas').push(venta, (error) => {
@@ -317,34 +554,38 @@ function calcularPrecioFinal() {
         alert('Error al guardar la venta.');
       } else {
         alert('Venta registrada correctamente.');
-        location.reload(); // recarga la página para resetear formulario
+        location.reload();
       }
     });
   });
+} else if (tipo === 'consulta') {
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
+    <label class="block mb-4">
+      <span class="text-gray-700">Seleccionar tipo:</span>
+      <select id="tipo-consulta" class="border p-2 rounded w-full">
+        <option value="marroquineria">Productos</option>
+        <option value="ventas_marroquineria">Ventas</option>
+      </select>
+    </label>
+
+    <label class="block mb-4">
+      <span class="text-gray-700">Buscar por texto:</span>
+      <input id="buscador" type="text" class="border p-2 rounded w-full" placeholder="Buscar...">
+    </label>
+
+    <div id="tabla-consultas" class="overflow-x-auto mt-4"></div>
+  `;
+
+  document.getElementById('tipo-consulta').addEventListener('change', cargarConsulta);
+  document.getElementById('buscador').addEventListener('input', cargarConsulta);
+  cargarConsulta();
 }
-
-
-    else if (tipo === 'consulta') {
-    cont.innerHTML = `
-      <h2 class="text-2xl font-bold mb-4 text-gray-700">Consultas</h2>
-      <label class="block mb-4">
-        <span class="text-gray-700">Seleccionar tipo:</span>
-        <select id="tipo-consulta" class="border p-2 rounded w-full">
-          <option value="marroquineria">Productos</option>
-          <option value="ventas_marroquineria">Ventas</option>
-        </select>
-      </label>
-      <div id="tabla-consultas" class="overflow-x-auto mt-4"></div>
-    `;
-
-    document.getElementById('tipo-consulta').addEventListener('change', cargarConsulta);
-    cargarConsulta();
-  }
 };
-
- function cargarConsulta() {
+function cargarConsulta() {
   const tipo = document.getElementById('tipo-consulta').value;
   const tablaCont = document.getElementById('tabla-consultas');
+  const filtro = (document.getElementById('buscador')?.value || '').toLowerCase();
 
   db.ref(tipo).once('value', snapshot => {
     if (!snapshot.exists()) {
@@ -353,15 +594,10 @@ function calcularPrecioFinal() {
     }
 
     const datos = snapshot.val();
-    const entradas = Object.entries(datos);
-
-    // Ordenar entradas por codigoSKU (alfabéticamente)
-    entradas.sort((a, b) => {
+    const entradas = Object.entries(datos).sort((a, b) => {
       const codigoA = (a[1].codigoSKU || '').toString().toLowerCase();
       const codigoB = (b[1].codigoSKU || '').toString().toLowerCase();
-      if (codigoA < codigoB) return -1;
-      if (codigoA > codigoB) return 1;
-      return 0;
+      return codigoA.localeCompare(codigoB);
     });
 
     const claves = Object.keys(entradas[0][1] || {});
@@ -374,21 +610,27 @@ function calcularPrecioFinal() {
         </tr>
       </thead>
       <tbody>
-        ${entradas.map(([key, item]) => `
-          <tr>
-            ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
-            <td class="px-4 py-2 border text-center">
-              <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
-              <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
-            </td>
-          </tr>
-        `).join('')}
+        ${entradas
+          .filter(([_, item]) => {
+            const texto = JSON.stringify(item).toLowerCase();
+            return texto.includes(filtro);
+          })
+          .map(([key, item]) => `
+            <tr>
+              ${claves.map(clave => `<td class="px-4 py-2 border text-sm">${item[clave] ?? ''}</td>`).join('')}
+              <td class="px-4 py-2 border text-center">
+                <button onclick="editarItem('${tipo}', '${key}')" class="text-blue-600 hover:underline">✏️</button>
+                <button onclick="eliminarItem('${tipo}', '${key}')" class="text-red-600 hover:underline ml-2">🗑️</button>
+              </td>
+            </tr>
+          `).join('')}
       </tbody>
     </table>`;
 
     tablaCont.innerHTML = html;
   });
 }
+
 
 
   function eliminarItem(tipo, id) {
@@ -519,35 +761,37 @@ function calcularPrecioFinal() {
   });
 }
 
+// Manejo global de formularios ingreso y venta
+document.addEventListener('submit', e => {
+  if (e.target.id === 'form-ingreso') {
+    e.preventDefault();
 
+    // Uso los IDs correctos según tu formulario
+    const skuIngreso = document.getElementById('sku-ingreso').value.trim().toLowerCase();
+    const tipo = document.getElementById('tipo-ingreso').value.trim();
+    const precioCompra = parseDecimal(document.getElementById('precio-compra').value);
+    const precioVenta = parseDecimal(document.getElementById('precio-venta').value);
+    const precioPromocional = parseDecimal(document.getElementById('precio-promocional').value || '0');
+    const cantidadPromocion = parseInt(document.getElementById('cantidad-promocion').value || '0');
+    const fechaIngreso = document.getElementById('fecha-ingreso').value;
+    const observaciones = document.getElementById('observaciones').value.trim();
 
-  // Manejo global de formularios ingreso y venta
-  document.addEventListener('submit', e => {
-    if (e.target.id === 'form-ingreso') {
-      e.preventDefault();
-      const form = e.target;
-      const inputs = form.querySelectorAll('input, select, textarea');
+    if (!skuIngreso) {
+      alert('Debe ingresar un Código SKU válido.');
+      return;
+    }
 
-      // --- Normalizo el SKU a minúsculas y quito espacios en ingreso
-      let skuIngreso = inputs[0].value.trim().toLowerCase();
+    const producto = {
+      codigoSKU: skuIngreso,
+      tipo,
+      precioCompra,
+      precioVenta,
+      precioPromocional,
+      cantidadPromocion,
+      fechaIngreso,
+      observaciones
+    };
 
-      // No valido regex para permitir cualquier tipo de código, solo que no esté vacío
-      if (!skuIngreso) {
-        alert('Debe ingresar un Código SKU válido.');
-        return;
-      }
-
-      let producto = {
-        codigoSKU: skuIngreso,
-        tipo: inputs[1].value.trim(),
-        
-        precioCompra: parseDecimal(inputs[2].value),
-        precioVenta: parseDecimal(inputs[3].value),
-        fechaIngreso: inputs[4].value,
-        observaciones: inputs[5].value.trim()
-      };
-
-     // Compruebo si ya existe el producto con ese SKU (igual en minúsculas)
     db.ref('marroquineria')
       .orderByChild('codigoSKU')
       .equalTo(skuIngreso)
@@ -558,49 +802,209 @@ function calcularPrecioFinal() {
           db.ref('marroquineria').push(producto)
             .then(() => {
               alert('Producto guardado correctamente');
-              form.reset();
+              e.target.reset();
             })
             .catch(e => alert('Error al guardar: ' + e.message));
         }
       });
+  }
 
+if (e.target.id === 'form-venta') {
+  e.preventDefault();
 
-    }
+  if (carrito.length === 0) {
+    alert('Debe agregar al menos un producto al carrito.');
+    return;
+  }
 
-    if (e.target.id === 'form-venta') {
-      e.preventDefault();
-      const form = e.target;
-      const inputs = form.querySelectorAll('input, select');
+  const form = e.target;
+  const inputs = form.querySelectorAll('input, select');
 
-      let codigoSKUVenta = inputs[3].value.trim();
+  const formaPago = document.getElementById('forma-pago')?.value || 'Sin forma de pago';
+  const moneda = document.getElementById('moneda')?.value || 'Sin moneda';
 
-      if (!codigoSKUVenta) {
-        alert('Debe ingresar un Código SKU válido.');
-        return;
+  const venta = {
+    fecha: inputs[0].value,
+    clienteNombre: inputs[1].value.trim(),
+    clienteDNI: inputs[2].value.trim(),
+    productos: carrito,
+    formaPago: formaPago,
+    moneda: moneda,
+    totalVenta: carrito.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0)
+  };
+
+  // Preguntar si desea enviar por WhatsApp
+  if (confirm('¿Desea enviar la venta por WhatsApp?')) {
+    enviarVentaPorWhatsApp(venta);
+  }
+
+        
+  
+}
+
+});
+
+function enviarVentaPorWhatsApp(venta) {
+  let numeroWhatsApp = prompt('Ingrese el número completo con prefijo para enviar WhatsApp:', '5492302419786');
+  if (!numeroWhatsApp) {
+    alert('No se ingresó un número válido.');
+    return;
+  }
+
+  numeroWhatsApp = numeroWhatsApp.replace(/\D/g, '');
+
+  const productosTexto = venta.productos.map((p, i) => {
+  const skuOriginal = p.sku || p.SKU || 'Sin SKU';
+  const cantidad = p.cantidad || p.Cantidad || 0;
+  const precio = p.precioUnitario || 0;
+  const total = p.total || p.Total || 0;
+
+  // Extraer descripción del SKU
+  let descripcionExtraida = '';
+  if (skuOriginal.includes(' ')) {
+    descripcionExtraida = skuOriginal.split(' ').slice(1).join(' ');
+  } else if (skuOriginal.includes('-')) {
+    descripcionExtraida = skuOriginal.split('-').slice(1).join('-');
+  } else {
+    descripcionExtraida = skuOriginal;
+  }
+
+  return `${i + 1}. SKU: ${descripcionExtraida.trim()}, Cant: ${cantidad}, Precio: $${precio}, Total: $${total}`;
+}).join('\n');
+
+  const mensaje = `
+*Nueva Venta Registrada*
+Fecha: ${venta.fecha}
+Cliente: ${venta.clienteNombre} (DNI: ${venta.clienteDNI})
+
+*Productos:*
+${productosTexto}
+
+Total: $${venta.totalVenta}
+
+`;
+
+  const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
+}
+// Obtener referencia al contenedor donde mostrar el formulario y resultados
+const cont = document.getElementById('contenedor-principal');
+
+document.getElementById('btn-ver-ventas').addEventListener('click', () => {
+  cont.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4 text-blue-700">Buscar Ventas</h2>
+    <form id="form-buscar-ventas" class="space-y-4">
+      <label>Fecha:
+        <input type="date" id="fecha-venta" class="border p-2 rounded w-full" />
+      </label>
+      <label>Cliente:
+        <input type="text" id="cliente-venta" class="border p-2 rounded w-full" placeholder="Nombre o DNI" />
+      </label>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-full">Buscar</button>
+    </form>
+    <div id="resultados-ventas" class="mt-4"></div>
+  `;
+
+  document.getElementById('form-buscar-ventas').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fecha = document.getElementById('fecha-venta').value;
+    const cliente = document.getElementById('cliente-venta').value.trim().toLowerCase();
+    await buscarVentas(fecha, cliente);
+  });
+});
+
+async function buscarVentas(fecha, cliente) {
+  const db = firebase.database();  // Si usás modular Firebase: const db = getDatabase();
+  const refVentas = db.ref('ventas');
+
+  try {
+    const snapshot = await refVentas.once('value');
+    const ventas = snapshot.val();
+
+    let ventasFiltradas = [];
+
+    for (const ventaId in ventas) {
+      const venta = ventas[ventaId];
+
+      if (fecha && venta.fecha !== fecha) continue;
+
+      if (cliente) {
+        const clienteStr = ((venta.cliente || '') + '' + (venta.dni || '')).toLowerCase();
+        if (!clienteStr.includes(cliente)) continue;
       }
 
-      const venta = {
-        fecha: inputs[0].value,
-        clienteNombre: inputs[1].value.trim(),
-        clienteDNI: inputs[2].value.trim(),
-        codigoSKU: codigoSKUVenta,
-        bonificacionPorc: parseDecimal(document.getElementById('bonificacion').value),
-        formaPago: document.getElementById('forma-pago').value,
-        moneda: document.getElementById('moneda').value,
-        precioFinal: parseDecimal(document.getElementById('precio-final').textContent)
-      };
-     
-      db.ref('ventas_marroquineria').push(venta)
-        .then(() => {
-          alert('Venta registrada correctamente');
-          form.reset();
-          document.getElementById('datos-producto').classList.add('hidden');
-          document.getElementById('precio-final').textContent = '0';
-        })
-        .catch(e => alert('Error al registrar venta: ' + e.message));
+      ventasFiltradas.push({ id: ventaId, ...venta });
     }
+
+    mostrarVentas(ventasFiltradas);
+
+  } catch (error) {
+    console.error('Error buscando ventas:', error);
+    document.getElementById('resultados-ventas').innerHTML = `<p class="text-red-600">Error al buscar ventas.</p>`;
+  }
+}
+
+function mostrarVentas(ventas) {
+  const contenedor = document.getElementById('resultados-ventas');
+  if (!ventas.length) {
+    contenedor.innerHTML = '<p>No se encontraron ventas con esos filtros.</p>';
+    return;
+  }
+
+  let html = '';
+
+  ventas.forEach(venta => {
+    // Calcular total de la venta
+    let totalVenta = 0;
+    if (venta.productos) {
+      totalVenta = venta.productos.reduce((acum, p) => acum + (p.cantidad * p.precioUnitario), 0);
+    }
+
+    html += `
+      <h3 class="mt-6 mb-2 font-semibold text-lg">Venta: ${venta.id}</h3>
+      <p><strong>Fecha:</strong> ${venta.fecha}</p>
+      <p><strong>Cliente:</strong> ${venta.cliente || ''} &nbsp;&nbsp; <strong>DNI:</strong> ${venta.dni || ''}</p>
+
+      <table class="min-w-full border border-gray-300 rounded-md overflow-hidden mb-4">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border border-gray-300 px-4 py-2 text-left">SKU</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Cantidad</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Precio Unitario</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${venta.productos && venta.productos.length > 0
+            ? venta.productos.map(p => {
+                const subtotal = p.cantidad * p.precioUnitario;
+                return `
+                  <tr>
+                    <td class="border border-gray-300 px-4 py-2">${p.sku}</td>
+                    <td class="border border-gray-300 px-4 py-2">${p.cantidad}</td>
+                    <td class="border border-gray-300 px-4 py-2">$${p.precioUnitario.toFixed(2)}</td>
+                    <td class="border border-gray-300 px-4 py-2">$${subtotal.toFixed(2)}</td>
+                  </tr>
+                `;
+              }).join('')
+            : `<tr><td colspan="4" class="border border-gray-300 px-4 py-2 text-center">No hay productos</td></tr>`
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="border border-gray-300 px-4 py-2 font-semibold text-right">Total Venta:</td>
+            <td class="border border-gray-300 px-4 py-2 font-semibold">$${totalVenta.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
   });
+
+  contenedor.innerHTML = html;
+}
+
 </script>
 
 </body>
+
 </html>
